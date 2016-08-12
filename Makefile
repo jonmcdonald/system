@@ -24,7 +24,7 @@ MBSRCS = $(wildcard $(MODELS)/*.cpp)
 MBOBJS = $(MBSRCS:.cpp=.o)
 MBARCHIVE = lib$(MODELS).a
 
-INCDIR = -I. -Isc -I$(LOCAL) -I$(MODELS)
+INCDIR = -I. -I$(LOCAL) -I$(MODELS)
 
 LIBS   = -L. -l$(MODELS)
 EXE    = $(MODULE).x
