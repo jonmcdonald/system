@@ -1,0 +1,148 @@
+# ============================ TLM Model File ============================
+# You can create tlm model by one of the following ways:
+#   - load this file using 'load_model' API function
+#   - compile this file using "Modeling->Load Model File" menu command.
+# ========================================================================
+template "/TLM/Generic_Library/Bus"
+
+# === ports ===
+add_port "r0" /TLM/protocols/generic master 32 -bind_mode optional
+add_port "d0" /TLM/protocols/generic slave 32 -bind_mode optional
+add_port "r1" /TLM/protocols/generic master 32 -bind_mode optional
+add_port "d1" /TLM/protocols/generic slave 32 -bind_mode optional
+add_port "r2" /TLM/protocols/generic master 32 -bind_mode optional
+add_port "d2" /TLM/protocols/generic slave 32 -bind_mode optional
+add_port "r3" /TLM/protocols/generic master 32 -bind_mode optional
+add_port "d3" /TLM/protocols/generic slave 32 -bind_mode optional
+add_port "r4" /TLM/protocols/generic master 32 -bind_mode optional
+add_port "d4" /TLM/protocols/generic slave 32 -bind_mode optional
+add_port "r5" /TLM/protocols/generic master 32 -bind_mode optional
+add_port "d5" /TLM/protocols/generic slave 32 -bind_mode optional
+
+# === parameters ===
+# usage: add_parameter <parameter_name> <default_value> <type:string|unsigned|int>
+# example: add_parameter "parameter1" 12 unsigned
+
+# === auto parameters ===
+set_auto_parameter_default "clock" {10 ns} time {}
+set_auto_parameter_default "generic_clock" clock time {}
+set_auto_parameter_default "nominal_voltage" 1 double {}
+set_auto_parameter_default "verbose_parameters" true boolean {true false}
+set_auto_parameter_default "dmi_enabled" true boolean {true false}
+set_auto_parameter_default "warning_level" WARNING string {
+      "IGNORE" "WARNING" "ONCE" "ERROR" "FATAL"}
+set_auto_parameter_default "layers" {""} string {}
+set_auto_parameter_default "slave_sets" {""} string {}
+set_auto_parameter_default "write_broadcast" 1 uint32 {}
+set_auto_parameter_default "r0_base_address" 0 uint64 {}
+set_auto_parameter_default "r0_size" 0xFFFFFFFF uint64 {}
+set_auto_parameter_default "r0_subtract_base_address" 1 uint32 {0 1}
+set_auto_parameter_default "r0_secure" 0 uint32 {0 1}
+set_auto_parameter_default "r0_additional_ranges" {""} string {}
+set_auto_parameter_default "r0_latency" 0 uint32 {}
+set_auto_parameter_default "d0_priority" 0 uint32 {}
+set_auto_parameter_default "d0_vmap" {""} string {}
+set_auto_parameter_default "r1_base_address" 0 uint64 {}
+set_auto_parameter_default "r1_size" 0xFFFFFFFF uint64 {}
+set_auto_parameter_default "r1_subtract_base_address" 1 uint32 {0 1}
+set_auto_parameter_default "r1_secure" 0 uint32 {0 1}
+set_auto_parameter_default "r1_additional_ranges" {""} string {}
+set_auto_parameter_default "r1_latency" 0 uint32 {}
+set_auto_parameter_default "d1_priority" 0 uint32 {}
+set_auto_parameter_default "d1_vmap" {""} string {}
+set_auto_parameter_default "r2_base_address" 0 uint64 {}
+set_auto_parameter_default "r2_size" 0xFFFFFFFF uint64 {}
+set_auto_parameter_default "r2_subtract_base_address" 1 uint32 {0 1}
+set_auto_parameter_default "r2_secure" 0 uint32 {0 1}
+set_auto_parameter_default "r2_additional_ranges" {""} string {}
+set_auto_parameter_default "r2_latency" 0 uint32 {}
+set_auto_parameter_default "d2_priority" 0 uint32 {}
+set_auto_parameter_default "d2_vmap" {""} string {}
+set_auto_parameter_default "r3_base_address" 0 uint64 {}
+set_auto_parameter_default "r3_size" 0xFFFFFFFF uint64 {}
+set_auto_parameter_default "r3_subtract_base_address" 1 uint32 {0 1}
+set_auto_parameter_default "r3_secure" 0 uint32 {0 1}
+set_auto_parameter_default "r3_additional_ranges" {""} string {}
+set_auto_parameter_default "r3_latency" 0 uint32 {}
+set_auto_parameter_default "d3_priority" 0 uint32 {}
+set_auto_parameter_default "d3_vmap" {""} string {}
+set_auto_parameter_default "r4_base_address" 0 uint64 {}
+set_auto_parameter_default "r4_size" 0xFFFFFFFF uint64 {}
+set_auto_parameter_default "r4_subtract_base_address" 1 uint32 {0 1}
+set_auto_parameter_default "r4_secure" 0 uint32 {0 1}
+set_auto_parameter_default "r4_additional_ranges" {""} string {}
+set_auto_parameter_default "r4_latency" 0 uint32 {}
+set_auto_parameter_default "d4_priority" 0 uint32 {}
+set_auto_parameter_default "d4_vmap" {""} string {}
+set_auto_parameter_default "r5_base_address" 0 uint64 {}
+set_auto_parameter_default "r5_size" 0xFFFFFFFF uint64 {}
+set_auto_parameter_default "r5_subtract_base_address" 1 uint32 {0 1}
+set_auto_parameter_default "r5_secure" 0 uint32 {0 1}
+set_auto_parameter_default "r5_additional_ranges" {""} string {}
+set_auto_parameter_default "r5_latency" 0 uint32 {}
+set_auto_parameter_default "d5_priority" 0 uint32 {}
+set_auto_parameter_default "d5_vmap" {""} string {}
+
+# === generics ===
+# usage: add_generic <generic_name> <value>
+# example: add_generic "OUT_ACTIVE_VALUE" false
+
+# === machine architecture ===
+set_sync_all 0
+add_delay_policy d0 0 -latency 0 -sync 1 -power 0
+add_pipeline_policy r0 d0 -latency r0_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r1 d0 -latency r1_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r2 d0 -latency r2_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r3 d0 -latency r3_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r4 d0 -latency r4_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r5 d0 -latency r5_latency -buffer_size 0 -sync 1 -power 0
+add_delay_policy d1 0 -latency 0 -sync 1 -power 0
+add_pipeline_policy r0 d1 -latency r0_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r1 d1 -latency r1_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r2 d1 -latency r2_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r3 d1 -latency r3_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r4 d1 -latency r4_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r5 d1 -latency r5_latency -buffer_size 0 -sync 1 -power 0
+add_delay_policy d2 0 -latency 0 -sync 1 -power 0
+add_pipeline_policy r0 d2 -latency r0_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r1 d2 -latency r1_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r2 d2 -latency r2_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r3 d2 -latency r3_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r4 d2 -latency r4_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r5 d2 -latency r5_latency -buffer_size 0 -sync 1 -power 0
+add_delay_policy d3 0 -latency 0 -sync 1 -power 0
+add_pipeline_policy r0 d3 -latency r0_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r1 d3 -latency r1_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r2 d3 -latency r2_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r3 d3 -latency r3_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r4 d3 -latency r4_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r5 d3 -latency r5_latency -buffer_size 0 -sync 1 -power 0
+add_delay_policy d4 0 -latency 0 -sync 1 -power 0
+add_pipeline_policy r0 d4 -latency r0_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r1 d4 -latency r1_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r2 d4 -latency r2_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r3 d4 -latency r3_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r4 d4 -latency r4_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r5 d4 -latency r5_latency -buffer_size 0 -sync 1 -power 0
+add_delay_policy d5 0 -latency 0 -sync 1 -power 0
+add_pipeline_policy r0 d5 -latency r0_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r1 d5 -latency r1_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r2 d5 -latency r2_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r3 d5 -latency r3_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r4 d5 -latency r4_latency -buffer_size 0 -sync 1 -power 0
+add_pipeline_policy r5 d5 -latency r5_latency -buffer_size 0 -sync 1 -power 0
+
+# === generate options ===
+set_generate_kind "pvt" ;# should be one of: model|pv|pvt
+set_include_file ""
+set_external_pv_include ""
+set_pv_kind "template" ;# should be one of: template|external
+set_timing_kind "policies" ;# should be: policies
+set_power_kind "policies" ;# should be: policies
+set_class_name_external_pv ""
+set_max_parameters_of_pv_constructor 5
+set_overwrite 0
+set_generate_ipxact 0
+set_ipxact_vendor "Mentor.com"
+set_ipxact_version 1.0
+
