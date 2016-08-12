@@ -20,7 +20,7 @@ MBCUSTOM = vista_work/papoulis_project$(VISTA_VERSION)/TLM/Generic_Library/Custo
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
-MBSRCS = $(wildcard $(MODELS)/*.cpp)
+MBSRCS = $(wildcard $(MODELS)/[en]*.cpp)
 MBOBJS = $(MBSRCS:.cpp=.o)
 MBARCHIVE = lib$(MODELS).a
 
