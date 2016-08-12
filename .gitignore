@@ -35,3 +35,4 @@ vista_work
 objdir
 model_builder.ini
 *~
+*.swp
