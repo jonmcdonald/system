@@ -8,7 +8,7 @@ OTHER  = +model_builder
 CFLAGS = $(DEBUG) $(OTHER)
 
 MODELS = models
-LOCAL  = local
+LOCAL  = schematics
 MODULE = run
 Project = Project
 

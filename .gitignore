@@ -27,6 +27,7 @@
 *.out
 *.app
 
+*.d
 *.jpg
 *.merged
 *.orig
