@@ -23,7 +23,7 @@
 //* The interval_timer_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 10:23:41 AM, (user: kenm)
+//* Generated on: Aug. 12, 2016 11:36:58 AM, (user: kenm)
 //*>
 
 
@@ -49,9 +49,12 @@ interval_timer_pv_base::interval_timer_pv_base(sc_module_name& module_name) :
   VISTA_MB_PV_INIT_MEMBER(Interval),
   VISTA_MB_PV_INIT_MEMBER(Reset),
   VISTA_MB_PV_INIT_MEMBER(Slave_memory),
-  COUNT("COUNT", &Slave_memory, ((0x0000) / 4), ( (0) + (((0x0000) % 4) << 3)), ( (31) + (((0x0000) % 4) << 3)),  (32), mb::tlm20::READ_ACCESS),
-  STARTCOUNT("STARTCOUNT", &Slave_memory, ((0x0004) / 4), ( (0) + (((0x0004) % 4) << 3)), ( (31) + (((0x0004) % 4) << 3)),  (32), mb::tlm20::READ_WRITE_ACCESS),
-  STATUSCONTROL("STATUSCONTROL", &Slave_memory, ((0x0008) / 4), ( (0) + (((0x0008) % 4) << 3)), ( (31) + (((0x0008) % 4) << 3)),  (32), mb::tlm20::READ_WRITE_ACCESS) {
+  CURRENTCOUNT("CURRENTCOUNT", &Slave_memory, ((0x0000) / 4), ( (0) + (((0x0000) % 4) << 3)), ( (31) + (((0x0000) % 4) << 3)),  (32), mb::tlm20::READ_ACCESS),
+  INTERVALCOUNT("INTERVALCOUNT", &Slave_memory, ((0x0004) / 4), ( (0) + (((0x0004) % 4) << 3)), ( (31) + (((0x0004) % 4) << 3)),  (32), mb::tlm20::READ_WRITE_ACCESS),
+  STATCTRL__ENOUT("STATCTRL__ENOUT", &Slave_memory, ((0x0008) / 4), ( (0) + (((0x0008) % 4) << 3)), ( (0) + (((0x0008) % 4) << 3)),  (32), mb::tlm20::READ_WRITE_ACCESS),
+  STATCTRL__ENCNTINU("STATCTRL__ENCNTINU", &Slave_memory, ((0x0008) / 4), ( (1) + (((0x0008) % 4) << 3)), ( (1) + (((0x0008) % 4) << 3)),  (32), mb::tlm20::READ_WRITE_ACCESS),
+  STATCTRL__ENCOUNT("STATCTRL__ENCOUNT", &Slave_memory, ((0x0008) / 4), ( (2) + (((0x0008) % 4) << 3)), ( (2) + (((0x0008) % 4) << 3)),  (32), mb::tlm20::READ_WRITE_ACCESS),
+  STATCTRL__RUNNING("STATCTRL__RUNNING", &Slave_memory, (() / 4), ( (3) + ((() % 4) << 3)), ( (3) + ((() % 4) << 3)),  (32), mb::tlm20::READ_ACCESS) {
   
 
   // Slave - not a vector port
@@ -72,8 +75,12 @@ interval_timer_pv_base::interval_timer_pv_base(sc_module_name& module_name) :
 
   // Reset reset value not defined
   Reset.register_cb(this, &self::cb_signal_Reset);
-  VISTA_MB_PV_SET_SELF_TRANSPORT_DBG(STARTCOUNT);
-  VISTA_MB_PV_SET_SELF_WRITE_CB(STARTCOUNT);
+  VISTA_MB_PV_SET_SELF_TRANSPORT_DBG(CURRENTCOUNT);
+  VISTA_MB_PV_SET_SELF_TRANSPORT_DBG(INTERVALCOUNT);
+  VISTA_MB_PV_SET_SELF_TRANSPORT_DBG(STATCTRL__ENCOUNT);
+  VISTA_MB_PV_SET_SELF_WRITE_CB(INTERVALCOUNT);
+  VISTA_MB_PV_SET_SELF_READ_CB(CURRENTCOUNT);
+  VISTA_MB_PV_SET_SELF_READ_CB(STATCTRL__ENCOUNT);
   VISTA_MB_PV_SET_TARGET_GET_DMI_DELAY_CB(Slave);
   VISTA_MB_PV_BIND_FW_PROCESS_TO_MEMORY_DEFAULT_IF(Slave);
   // Slave bw callbacks 
@@ -86,9 +93,12 @@ void interval_timer_pv_base::reset_registers() {
   unsigned u = 0;
 
 
-  COUNT.setResetValue(0);
-  STARTCOUNT.setResetValue(0);
-  STATUSCONTROL.setResetValue(0);
+  STATCTRL__RUNNING.setResetValue(0x0);
+  CURRENTCOUNT.setResetValue(oxo);
+  INTERVALCOUNT.setResetValue(0x0);
+  STATCTRL__ENOUT.setResetValue(0x0);
+  STATCTRL__ENCNTINU.setResetValue(0x0);
+  STATCTRL__ENCOUNT.setResetValue(0x0);
 }
 
 void interval_timer_pv_base::reset_model() {
@@ -179,7 +189,7 @@ void interval_timer_pv_base::end_of_elaboration() {
 //* The interval_timer_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 10:23:41 AM, (user: kenm)
+//* Generated on: Aug. 12, 2016 11:36:58 AM, (user: kenm)
 //*>
 
 
@@ -393,9 +403,12 @@ interval_timer_t_base::interval_timer_t_base(sc_module_name& module_name, long s
   SD_INITIALIZE_PARAMETER(Slave_pipeline_length, 2),
   SD_INITIALIZE_PARAMETER(Reset_pipeline_length, 2),
   m_simulation(simulation),
-  COUNT("COUNT", this),
-  STARTCOUNT("STARTCOUNT", this),
-  STATUSCONTROL("STATUSCONTROL", this)
+  CURRENTCOUNT("CURRENTCOUNT", this),
+  INTERVALCOUNT("INTERVALCOUNT", this),
+  STATCTRL__ENOUT("STATCTRL__ENOUT", this),
+  STATCTRL__ENCNTINU("STATCTRL__ENCNTINU", this),
+  STATCTRL__ENCOUNT("STATCTRL__ENCOUNT", this),
+  STATCTRL__RUNNING("STATCTRL__RUNNING", this)
 {
   bool separate_read_channel = false;  
   bool separate_write_channel = false;
@@ -609,7 +622,23 @@ bool interval_timer_t_base::triggerRegistersGotHit(unsigned portIndex, tlm::tlm_
 
   {
     if (0 == portIndex) {
+      mb::utl::Segment<uint64_t> current((1 + ((0x0000 % 4) << 3)), (1 + ((0x0000 % 4) << 3)));
+      mb::utl::Segment<uint64_t> intersect = transactionRange.intersect(current);
+      if (!intersect.empty())
+        return true;
+    }
+  }
+  {
+    if (0 == portIndex) {
       mb::utl::Segment<uint64_t> current((1 + ((0x0004 % 4) << 3)), (1 + ((0x0004 % 4) << 3)));
+      mb::utl::Segment<uint64_t> intersect = transactionRange.intersect(current);
+      if (!intersect.empty())
+        return true;
+    }
+  }
+  {
+    if (0 == portIndex) {
+      mb::utl::Segment<uint64_t> current((1 + ((0x0008 % 4) << 3)), (1 + ((0x0008 % 4) << 3)));
       mb::utl::Segment<uint64_t> intersect = transactionRange.intersect(current);
       if (!intersect.empty())
         return true;
@@ -631,26 +660,44 @@ bool interval_timer_t_base::portHasRegisters(unsigned portIndex) {
 
 
 unsigned interval_timer_t_base::getPortCountForRegister(unsigned regIndex) {
-  if (!strcmp(get_register_name(regIndex), "COUNT"))
+  if (!strcmp(get_register_name(regIndex), "CURRENTCOUNT"))
     return 1;
-  if (!strcmp(get_register_name(regIndex), "STARTCOUNT"))
+  if (!strcmp(get_register_name(regIndex), "INTERVALCOUNT"))
     return 1;
-  if (!strcmp(get_register_name(regIndex), "STATUSCONTROL"))
+  if (!strcmp(get_register_name(regIndex), "STATCTRL__ENOUT"))
+    return 1;
+  if (!strcmp(get_register_name(regIndex), "STATCTRL__ENCNTINU"))
+    return 1;
+  if (!strcmp(get_register_name(regIndex), "STATCTRL__ENCOUNT"))
+    return 1;
+  if (!strcmp(get_register_name(regIndex), "STATCTRL__RUNNING"))
     return 1;
   return 0;
 }
 
 void interval_timer_t_base::getPortNamesForRegister(unsigned regIndex, const char **names) {
   long i = 0;
-  if (!strcmp(get_register_name(regIndex), "COUNT")) {
+  if (!strcmp(get_register_name(regIndex), "CURRENTCOUNT")) {
     names[i++] = "Slave";
     return;
   }
-  if (!strcmp(get_register_name(regIndex), "STARTCOUNT")) {
+  if (!strcmp(get_register_name(regIndex), "INTERVALCOUNT")) {
     names[i++] = "Slave";
     return;
   }
-  if (!strcmp(get_register_name(regIndex), "STATUSCONTROL")) {
+  if (!strcmp(get_register_name(regIndex), "STATCTRL__ENOUT")) {
+    names[i++] = "Slave";
+    return;
+  }
+  if (!strcmp(get_register_name(regIndex), "STATCTRL__ENCNTINU")) {
+    names[i++] = "Slave";
+    return;
+  }
+  if (!strcmp(get_register_name(regIndex), "STATCTRL__ENCOUNT")) {
+    names[i++] = "Slave";
+    return;
+  }
+  if (!strcmp(get_register_name(regIndex), "STATCTRL__RUNNING")) {
     names[i++] = "Slave";
     return;
   }
@@ -686,7 +733,7 @@ void interval_timer_t_base::getPortNamesForRegister(unsigned regIndex, const cha
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 10:23:41 AM, (user: kenm)
+//* Generated on: Aug. 12, 2016 11:36:58 AM, (user: kenm)
 //*>
 
 #include "interval_timer_model.h"

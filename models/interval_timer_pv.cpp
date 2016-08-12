@@ -20,6 +20,7 @@
 //* 
 //* Model Builder version: 4.2.1
 //* Generated on: Aug. 12, 2016 10:23:41 AM, (user: kenm)
+//* Automatically merged on: Aug. 12, 2016 11:36:58 AM, (user: kenm)
 //*>
 
 
@@ -34,7 +35,29 @@ using namespace std;
 //constructor
 interval_timer_pv::interval_timer_pv(sc_module_name module_name) 
   : interval_timer_pv_base(module_name) {
-}   
+} 
+
+/////////////////////////////////////////////////////////////////////////////////
+// Use these functions to define the behavior of your model when there is a 
+// read event on one of the registers as defined in the Model Builder form.
+// These functions are called before the read callbacks on the port.
+///////////////////////////////////////////////////////////////////////////////// 
+
+// Read callback for CURRENTCOUNT register.
+// The value that this function returns, will be returned to the initiator port that requested its value.
+unsigned int interval_timer_pv::cb_read_CURRENTCOUNT() {
+  
+  return CURRENTCOUNT;
+}
+ 
+
+// Read callback for STATCTRL__ENCOUNT register.
+// The value that this function returns, will be returned to the initiator port that requested its value.
+unsigned int interval_timer_pv::cb_read_STATCTRL__ENCOUNT() {
+  
+  return STATCTRL__ENCOUNT;
+}
+  
 
 /////////////////////////////////////////////////////////////////////////////////
 // Use these functions to define the behavior of your model when there is a 
@@ -42,9 +65,9 @@ interval_timer_pv::interval_timer_pv(sc_module_name module_name)
 // These functions are called before the write callbacks on the port.
 ///////////////////////////////////////////////////////////////////////////////// 
 
-// Write callback for STARTCOUNT register.
-// The newValue has been already assigned to the STARTCOUNT register.
-void interval_timer_pv::cb_write_STARTCOUNT(unsigned int newValue) {
+// Write callback for INTERVALCOUNT register.
+// The newValue has been already assigned to the INTERVALCOUNT register.
+void interval_timer_pv::cb_write_INTERVALCOUNT(unsigned int newValue) {
   
 }
     
@@ -79,7 +102,9 @@ bool interval_timer_pv::Slave_get_direct_memory_ptr(mb_address_type address, tlm
 }
 
  
-void interval_timer_pv::cb_transport_dbg_STARTCOUNT(tlm::tlm_generic_payload& trans) {}
+void interval_timer_pv::cb_transport_dbg_CURRENTCOUNT(tlm::tlm_generic_payload& trans) {}
+void interval_timer_pv::cb_transport_dbg_INTERVALCOUNT(tlm::tlm_generic_payload& trans) {}
+void interval_timer_pv::cb_transport_dbg_STATCTRL__ENCOUNT(tlm::tlm_generic_payload& trans) {}
 
 // callback for any change in signal: Reset of type: sc_in<bool>
 void interval_timer_pv::Reset_callback() {

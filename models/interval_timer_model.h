@@ -23,7 +23,7 @@
 //* The interval_timer_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 10:23:41 AM, (user: kenm)
+//* Generated on: Aug. 12, 2016 11:36:58 AM, (user: kenm)
 //*>
 
 
@@ -220,6 +220,13 @@ class interval_timer_pv_base : public interval_timer_pv_base_mb_compatibility,
   }
 
   
+ protected:
+  ////////////////////////////////////////
+  // registers read callbacks interface
+  ////////////////////////////////////////
+  
+  virtual unsigned int cb_read_CURRENTCOUNT() = 0;
+  virtual unsigned int cb_read_STATCTRL__ENCOUNT() = 0;
 
   
  protected:
@@ -227,7 +234,7 @@ class interval_timer_pv_base : public interval_timer_pv_base_mb_compatibility,
   // registers write callbacks interface
   ////////////////////////////////////////
   
-  virtual void cb_write_STARTCOUNT(unsigned int newValue) = 0;
+  virtual void cb_write_INTERVALCOUNT(unsigned int newValue) = 0;
 
 
 
@@ -235,7 +242,9 @@ class interval_timer_pv_base : public interval_timer_pv_base_mb_compatibility,
 
   
  protected:
-  virtual void cb_transport_dbg_STARTCOUNT(tlm::tlm_generic_payload& trans) {}
+  virtual void cb_transport_dbg_CURRENTCOUNT(tlm::tlm_generic_payload& trans) {}
+  virtual void cb_transport_dbg_INTERVALCOUNT(tlm::tlm_generic_payload& trans) {}
+  virtual void cb_transport_dbg_STATCTRL__ENCOUNT(tlm::tlm_generic_payload& trans) {}
   
   
 
@@ -342,9 +351,12 @@ class interval_timer_pv_base : public interval_timer_pv_base_mb_compatibility,
   
 
  protected:
-  mb::mb_register<unsigned int> COUNT;
-  mb::mb_register<unsigned int> STARTCOUNT;
-  mb::mb_register<unsigned int> STATUSCONTROL;
+  mb::mb_register<unsigned int> CURRENTCOUNT;
+  mb::mb_register<unsigned int> INTERVALCOUNT;
+  mb::mb_register<unsigned int> STATCTRL__ENOUT;
+  mb::mb_register<unsigned int> STATCTRL__ENCNTINU;
+  mb::mb_register<unsigned int> STATCTRL__ENCOUNT;
+  mb::mb_register<unsigned int> STATCTRL__RUNNING;
 };
 
 
@@ -360,15 +372,21 @@ public:
 public:
   template <class SOCKET>
   interval_timer_RemoteRegisters(SOCKET& s, uint64_t baseAddress) :
-    m_COUNT(s[0], baseAddress, ((0x0000) / 4), ( (0) + (((0x0000) % 4) << 3)), ( (31) + (((0x0000) % 4) << 3))),
-    m_STARTCOUNT(s[0], baseAddress, ((0x0004) / 4), ( (0) + (((0x0004) % 4) << 3)), ( (31) + (((0x0004) % 4) << 3))),
-    m_STATUSCONTROL(s[0], baseAddress, ((0x0008) / 4), ( (0) + (((0x0008) % 4) << 3)), ( (31) + (((0x0008) % 4) << 3))),
+    m_CURRENTCOUNT(s[0], baseAddress, ((0x0000) / 4), ( (0) + (((0x0000) % 4) << 3)), ( (31) + (((0x0000) % 4) << 3))),
+    m_INTERVALCOUNT(s[0], baseAddress, ((0x0004) / 4), ( (0) + (((0x0004) % 4) << 3)), ( (31) + (((0x0004) % 4) << 3))),
+    m_STATCTRL__ENOUT(s[0], baseAddress, ((0x0008) / 4), ( (0) + (((0x0008) % 4) << 3)), ( (0) + (((0x0008) % 4) << 3))),
+    m_STATCTRL__ENCNTINU(s[0], baseAddress, ((0x0008) / 4), ( (1) + (((0x0008) % 4) << 3)), ( (1) + (((0x0008) % 4) << 3))),
+    m_STATCTRL__ENCOUNT(s[0], baseAddress, ((0x0008) / 4), ( (2) + (((0x0008) % 4) << 3)), ( (2) + (((0x0008) % 4) << 3))),
+    m_STATCTRL__RUNNING(s[0], baseAddress, (() / 4), ( (3) + ((() % 4) << 3)), ( (3) + ((() % 4) << 3))),
     m_dummy(0) {}
     
 public:
-  mb::mb_remote_register<unsigned int, TRANS> m_COUNT;
-  mb::mb_remote_register<unsigned int, TRANS> m_STARTCOUNT;
-  mb::mb_remote_register<unsigned int, TRANS> m_STATUSCONTROL;
+  mb::mb_remote_register<unsigned int, TRANS> m_CURRENTCOUNT;
+  mb::mb_remote_register<unsigned int, TRANS> m_INTERVALCOUNT;
+  mb::mb_remote_register<unsigned int, TRANS> m_STATCTRL__ENOUT;
+  mb::mb_remote_register<unsigned int, TRANS> m_STATCTRL__ENCNTINU;
+  mb::mb_remote_register<unsigned int, TRANS> m_STATCTRL__ENCOUNT;
+  mb::mb_remote_register<unsigned int, TRANS> m_STATCTRL__RUNNING;
 private:
   int m_dummy;
 };
@@ -411,7 +429,7 @@ public:
 //* The interval_timer_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 10:23:41 AM, (user: kenm)
+//* Generated on: Aug. 12, 2016 11:36:58 AM, (user: kenm)
 //*>
 
 
@@ -537,11 +555,14 @@ protected:
  
   
 public:
-  enum register_enum {COUNT_idx, STARTCOUNT_idx, STATUSCONTROL_idx };
+  enum register_enum {CURRENTCOUNT_idx, INTERVALCOUNT_idx, STATCTRL__ENOUT_idx, STATCTRL__ENCNTINU_idx, STATCTRL__ENCOUNT_idx, STATCTRL__RUNNING_idx };
 protected:
-  mb::mb_t_register<unsigned int> COUNT;
-  mb::mb_t_register<unsigned int> STARTCOUNT;
-  mb::mb_t_register<unsigned int> STATUSCONTROL; 
+  mb::mb_t_register<unsigned int> CURRENTCOUNT;
+  mb::mb_t_register<unsigned int> INTERVALCOUNT;
+  mb::mb_t_register<unsigned int> STATCTRL__ENOUT;
+  mb::mb_t_register<unsigned int> STATCTRL__ENCNTINU;
+  mb::mb_t_register<unsigned int> STATCTRL__ENCOUNT;
+  mb::mb_t_register<unsigned int> STATCTRL__RUNNING; 
   
   
 
@@ -644,7 +665,7 @@ protected:
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 10:23:41 AM, (user: kenm)
+//* Generated on: Aug. 12, 2016 11:36:58 AM, (user: kenm)
 //*>
 
 

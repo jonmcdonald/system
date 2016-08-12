@@ -32,9 +32,12 @@ set_auto_parameter_default "Reset_pipeline_length" 2 uint32 {}
 # example: add_generic "OUT_ACTIVE_VALUE" false
 
 # === machine architecture ===
-declare_register Slave COUNT 0x0000 31:0 -rw_access r -width 32
-declare_register Slave STARTCOUNT 0x0004 31:0 -rw_access rw -trigger w -width 32
-declare_register Slave STATUSCONTROL 0x0008 31:0 -rw_access rw -width 32
+declare_register Slave CURRENTCOUNT 0x0000 31:0 -rw_access r -is_trigger -width 32 -reset_value oxo
+declare_register Slave INTERVALCOUNT 0x0004 31:0 -rw_access rw -trigger w -width 32 -reset_value 0x0
+declare_register Slave STATCTRL__ENOUT 0x0008 0:0 -rw_access rw -width 32 -reset_value 0x0
+declare_register Slave STATCTRL__ENCNTINU 0x0008 1:1 -rw_access rw -width 32 -reset_value 0x0
+declare_register Slave STATCTRL__ENCOUNT 0x0008 2:2 -rw_access rw -trigger r -width 32 -reset_value 0x0
+declare_register Slave STATCTRL__RUNNING {} 3:3 -rw_access r -width 32 -reset_value 0x0
 
 # === generate options ===
 set_generate_kind "pvt" ;# should be one of: model|pv|pvt
