@@ -1,0 +1,1 @@
+"vista_cc" -I. -c -x c++ -Wall  -fno-eliminate-unused-debug-symbols -fno-eliminate-unused-debug-types -Wall -Wno-unknown-pragmas -Wno-switch -Wno-unused -MMD -I.  +model_builder  "Test_Project.allschematics.cpp" -o "Test_Project.allschematics.o" -H

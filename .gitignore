@@ -27,6 +27,7 @@
 *.out
 *.app
 
+*.d
 *.jpg
 *.merged
 *.orig
@@ -36,3 +37,4 @@ objdir
 model_builder.ini
 *~
 *.swp
+model_builder
