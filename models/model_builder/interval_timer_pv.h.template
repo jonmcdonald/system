@@ -19,7 +19,7 @@
 //* behavior of your component. 
 //* 
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 10:23:41 AM, (user: kenm)
+//* Generated on: Aug. 12, 2016 11:36:58 AM, (user: kenm)
 //*>
 
 
@@ -38,13 +38,20 @@ class interval_timer_pv : public interval_timer_pv_base {
   // Do not add parameters here.
   // To add parameters - use the Model Builder form (under PV->Parameters tab)
   SC_HAS_PROCESS(interval_timer_pv);
-  interval_timer_pv(sc_core::sc_module_name module_name);  
+  interval_timer_pv(sc_core::sc_module_name module_name); 
+
+ protected:
+  ////////////////////////////////////////
+  // read callbacks of registers
+  ////////////////////////////////////////// 
+  unsigned int cb_read_CURRENTCOUNT();
+  unsigned int cb_read_STATCTRL__ENCOUNT(); 
   
  protected:
   /////////////////////////////////////////
   // write callbacks of registers
   ////////////////////////////////////////// 
-  void cb_write_STARTCOUNT(unsigned int newValue);  
+  void cb_write_INTERVALCOUNT(unsigned int newValue);  
 
  protected:
   ////////////////////////////////////////
@@ -61,7 +68,9 @@ class interval_timer_pv : public interval_timer_pv_base {
   bool Slave_callback_write(mb_address_type address, unsigned char* data, unsigned size);
   
   unsigned Slave_callback_write_dbg(mb_address_type address, unsigned char* data, unsigned size); 
-  virtual void cb_transport_dbg_STARTCOUNT(tlm::tlm_generic_payload& trans); 
+  virtual void cb_transport_dbg_CURRENTCOUNT(tlm::tlm_generic_payload& trans);
+  virtual void cb_transport_dbg_INTERVALCOUNT(tlm::tlm_generic_payload& trans);
+  virtual void cb_transport_dbg_STATCTRL__ENCOUNT(tlm::tlm_generic_payload& trans); 
   bool Slave_get_direct_memory_ptr(mb_address_type address, tlm::tlm_dmi& dmiData);  
 
  protected:
