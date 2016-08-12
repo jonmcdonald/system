@@ -107,3 +107,14 @@ The file can be checked in later if needed.
 To change URL of remote:
    > git remote set-url origin ssh://jmcdonal@localhost:2022/git-repository/lv2/platforms/<repo>
 
+Pushing to github and permission issues
+   If you have permission issues when pushing to github and you cloned from the https url, change to the ssh url 
+   with the following command:
+   > git remote set-url origin ssh://git@github.com/jonmcdonald/system
+
+   If you still get permission problems, check to see if you have an ssh key, ~/ssh/id_rsa.  If you do not have
+   that file instructions to generate it can be found at:
+       https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/
+
+   After you have the id_rsa file you will need to add the public key to your github account.  Instructions at:
+       https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/
