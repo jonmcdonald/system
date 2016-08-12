@@ -1,3 +1,0 @@
-/home/public/projects/mentor/vista/vista_network_example/vista_network_example/models/WaveSampleGenerator_model.h WaveSampleGenerator_model.h
-/home/public/projects/mentor/vista/vista_network_example/vista_network_example/models/generic_protocol.h generic_protocol.h
-/home/public/projects/mentor/vista/vista_network_example/vista_network_example/models/WaveSampleGenerator_pv.h WaveSampleGenerator_pv.h

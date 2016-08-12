@@ -1,1 +1,0 @@
-"vista_cc" -I. -c -x c++ -Wall  -Wall -Wno-unknown-pragmas -Wno-switch -Wno-unused -MMD -I.  +model_builder  "/home/public/projects/mentor/vista/vista_network_example/vista_network_example/models/WaveSampleGenerator_model.cpp" -o "D_PRJDIR_/models/WaveSampleGenerator_model.o" -H
