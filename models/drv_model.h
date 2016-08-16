@@ -22,8 +22,8 @@
 //* This class contains the infrastructure to define the behavior of the component.
 //* The drv_pv will be derived from this class.
 //*
-//* Model Builder version: 4.2.0
-//* Generated on: Aug. 12, 2016 09:31:20 AM, (user: jon)
+//* Model Builder version: 4.2.1
+//* Generated on: Aug. 12, 2016 03:01:28 PM, (user: jon)
 //*>
 
 
@@ -33,8 +33,8 @@
 #include "model_builder.h"
 
 #ifdef MODEL_BUILDER_VERSION_NUMBER
-#if 4200 != MODEL_BUILDER_VERSION_NUMBER
-#error "This model was generated using Model Builder version: 4.2.0. Please regenerate model."
+#if 4201 != MODEL_BUILDER_VERSION_NUMBER
+#error "This model was generated using Model Builder version: 4.2.1. Please regenerate model."
 #endif
 #else
 #error "Please regenerate model."
@@ -1427,8 +1427,8 @@ class drv_pv_base : public drv_pv_base_mb_compatibility,
 //* upon generation of the timing model (using generate_timing_model command).
 //* The drv_t will be derived from this class.
 //*
-//* Model Builder version: 4.2.0
-//* Generated on: Aug. 12, 2016 09:31:20 AM, (user: jon)
+//* Model Builder version: 4.2.1
+//* Generated on: Aug. 12, 2016 03:01:28 PM, (user: jon)
 //*>
 
 
@@ -1638,8 +1638,8 @@ protected:
 //* the corresponding T transactions are launched.
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
-//* Model Builder version: 4.2.0
-//* Generated on: Aug. 12, 2016 09:31:20 AM, (user: jon)
+//* Model Builder version: 4.2.1
+//* Generated on: Aug. 12, 2016 03:01:28 PM, (user: jon)
 //*>
 
 
