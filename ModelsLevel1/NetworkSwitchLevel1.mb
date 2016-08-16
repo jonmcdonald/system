@@ -1,0 +1,72 @@
+# ============================ TLM Model File ============================
+# You can create tlm model by one of the following ways:
+#   - load this file using 'load_model' API function
+#   - compile this file using "Modeling->Load Model File" menu command.
+# ========================================================================
+
+# === ports ===
+add_port "NodeMaster0" /TLM/protocols/generic master 8 -bind_mode mandatory
+add_port "NodeSlave0" /TLM/protocols/generic slave 8 -bind_mode mandatory
+add_port "NodeMaster1" /TLM/protocols/generic master 8 -bind_mode mandatory
+add_port "NodeSlave1" /TLM/protocols/generic slave 8 -bind_mode mandatory
+add_port "NodeMaster2" /TLM/protocols/generic master 8 -bind_mode mandatory
+add_port "NodeSlave2" /TLM/protocols/generic slave 8 -bind_mode mandatory
+add_port "NodeMaster3" /TLM/protocols/generic master 8 -bind_mode mandatory
+add_port "NodeSlave3" /TLM/protocols/generic slave 8 -bind_mode mandatory
+add_port "NodeMaster4" /TLM/protocols/generic master 8 -bind_mode mandatory
+add_port "NodeSlave4" /TLM/protocols/generic slave 8 -bind_mode mandatory
+
+# === parameters ===
+add_parameter "WireDelay" {10 ns} time {}
+add_parameter "MaxFifoSize" 10000 uint32 {}
+add_parameter "MaxMapTableSize" 10000 uint32 {}
+
+# === auto parameters ===
+set_auto_parameter_default "clock" {10 ns} time {}
+set_auto_parameter_default "generic_clock" clock time {}
+set_auto_parameter_default "nominal_voltage" 1 double {}
+set_auto_parameter_default "mb_debug" false boolean {true false}
+set_auto_parameter_default "call_to_default_if" false boolean {true false}
+set_auto_parameter_default "verbose_parameters" true boolean {true false}
+set_auto_parameter_default "dmi_enabled" true boolean {true false}
+set_auto_parameter_default "warning_level" WARNING string {
+      "IGNORE" "WARNING" "ONCE" "ERROR" "FATAL"}
+set_auto_parameter_default "NodeSlave0_pipeline_length" 2 uint32 {}
+set_auto_parameter_default "NodeSlave1_pipeline_length" 2 uint32 {}
+set_auto_parameter_default "NodeSlave2_pipeline_length" 2 uint32 {}
+set_auto_parameter_default "NodeSlave3_pipeline_length" 2 uint32 {}
+set_auto_parameter_default "NodeSlave4_pipeline_length" 2 uint32 {}
+
+# === generics ===
+# usage: add_generic <generic_name> <value>
+# example: add_generic "OUT_ACTIVE_VALUE" false
+
+# === machine architecture ===
+set_sync_all 0
+add_delay_policy NodeSlave0 7 -latency 0 -sync 1 -power 1
+add_delay_policy NodeSlave1 7 -latency 0 -sync 1 -power 1
+add_delay_policy NodeSlave2 7 -latency 0 -sync 1 -power 1
+add_delay_policy NodeSlave3 7 -latency 0 -sync 1 -power 1
+add_delay_policy NodeSlave4 7 -latency 0 -sync 1 -power 1
+set_nominal_clock 100
+declare_communication_channel SystemControllerFifo mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}
+declare_communication_channel NodeFifo0 mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}
+declare_communication_channel NodeFifo1 mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}
+declare_communication_channel NodeFifo2 mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}
+declare_communication_channel NodeFifo3 mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}
+declare_communication_channel NodeFifo4 mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}
+
+# === generate options ===
+set_generate_kind "pvt" ;# should be one of: model|pv|pvt
+set_include_file "ethernet_packet.h"
+set_external_pv_include ""
+set_pv_kind "template" ;# should be one of: template|external
+set_timing_kind "policies" ;# should be: policies
+set_power_kind "policies" ;# should be: policies
+set_class_name_external_pv ""
+set_max_parameters_of_pv_constructor 5
+set_overwrite 1
+set_generate_ipxact 0
+set_ipxact_vendor "Mentor.com"
+set_ipxact_version 1.0
+

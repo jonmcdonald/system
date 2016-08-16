@@ -1,0 +1,11 @@
+clock = 10 ns
+
+TopLevel1.NODE0.MacAddress = 1
+TopLevel1.NODE0.MacAddressSystemController = 5
+TopLevel1.NODE1.MacAddress = 2
+TopLevel1.NODE1.MacAddressSystemController = 5
+TopLevel1.NODE2.MacAddress = 3
+TopLevel1.NODE2.MacAddressSystemController = 5
+TopLevel1.NODE3.MacAddress = 4
+TopLevel1.NODE3.MacAddressSystemController = 5
+TopLevel1.SYSTEMCONTROLLER.MacAddress = 5

@@ -1,0 +1,43 @@
+ProjectName ProjectLevel1
+Files {
+	 Models {
+		{$PRJDIR/ModelsLevel1/NetworkSwitchLevel1.mb}
+		{$PRJDIR/ModelsLevel1/SensorNodeLevel1.mb}
+		{$PRJDIR/ModelsLevel1/SystemControllerLevel1.mb}
+		{$PRJDIR/SharedModels/WaveSampleGenerator.mb}
+	 } 
+	 Schematics {
+		{$PRJDIR/SchematicsLevel1/TopLevel1.h}
+	 } 
+	 Sources {
+		{$PRJDIR/SharedModels/ethernet_packet.cpp}
+		{$PRJDIR/sc_main_level1.cpp}
+	 } 
+	 {Public Headers} {
+		{$PRJDIR/SharedModels/ethernet_packet.h}
+		{$PRJDIR/ModelsLevel1/generic_protocol.h}
+	 } 
+}
+Designs {{$PRJDIR/sc_main_level1.cpp}}
+Simulations /home/public/projects/mentor/vista/vista_network_example/system/ProjectLevel1/sim
+Folders {
+	 Sources {*.c *.cpp *.C *.cxx *.cc} 
+	 {Public Headers} {*.h *.hpp *.H *.hxx *.hh} 
+	 Models *.mb 
+	 Schematics {} 
+	 Documentation {*.txt *.TXT *.doc *.DOC *.pdf *.PDF *.html *.HTML *.htm *.HTM *.ps *.PS} 
+	 {Linked Binaries} {*.o *.a *.so} 
+	 {Other Binaries} {*.exe *.x} 
+}
+GeneralCompilationOptions -Wall
+AlwaysCompileInCPPMode 1
+LinkPackages model_builder
+ProjectLibraryType archive
+ProjectComponentsLibraryPath {$PRJDIR/$PRJFILE_BASENAME/interfaces}
+ProjectWorkingDirectory {$PRJDIR/$PRJFILE_BASENAME/build}
+HasTLMSupport 0
+CompiledWithTLMSupport 0
+IsUsePathVariables 1
+PlatformName ProjectLevel1
+ProjectReadOnly 0
+ProjectBuildMultiPlatform 0
