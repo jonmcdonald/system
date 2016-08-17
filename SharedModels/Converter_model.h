@@ -23,7 +23,7 @@
 //* The Converter_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 01:55:05 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 08:40:58 AM, (user: jon)
 //*>
 
 
@@ -421,7 +421,7 @@ public:
 //* The Converter_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 01:55:05 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 08:40:58 AM, (user: jon)
 //*>
 
 
@@ -506,7 +506,7 @@ public:
   virtual bool portHasRegisters(unsigned portIndex);
   virtual bool triggerRegistersGotHit(unsigned portIndex, tlm::tlm_generic_payload& trans);
 
-  virtual const char* get_library_name() {return "models";}
+  virtual const char* get_library_name() {return "SharedModels";}
   virtual const char* get_model_vendor() {return "Mentor.com";}
   virtual const char* get_model_version() {return "1.0";}
 
@@ -666,7 +666,7 @@ protected:
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 12, 2016 01:55:05 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 08:40:58 AM, (user: jon)
 //*>
 
 

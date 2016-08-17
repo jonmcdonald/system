@@ -7,27 +7,35 @@ OTHER  = +model_builder -sc23 -gcc47 -sc-dynamic -DSC_INCLUDE_DYNAMIC_PROCESSES
 OTHER  = +model_builder 
 CFLAGS = $(DEBUG) $(OTHER)
 
-MODELS = models
-LOCAL  = schematics
-MODULE = run
-Project = Project
+MODELS  ?= models
+EXE     ?= run.x
+SC_MAIN ?= sc_main.cpp
 
 VISTA_HOME = $(subst bin/vista,,$(shell which vista))
 MODEL_BUILDER_HOME = $(VISTA_HOME)papoulis
 VISTA_VERSION = $(strip $(patsubst Vista,,$(shell vista -version)))
 MBCUSTOM = vista_work/papoulis_project$(VISTA_VERSION)/TLM/Generic_Library/Custom
 
-SRCS = $(wildcard *.cpp)
+SRCS = $(shell grep -L sc_main *.cpp)
+SC_MAINS = $(shell grep -l sc_main *.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
-MBSRCS = $(wildcard $(MODELS)/[en]*.cpp)
+MBFILES = $(wildcard */*.mb)
+NUMMBFILES = $(words $(MBFILES))
+MBDIRS = $(shell ls */*.mb | sed 's:/[^/]*$$::' | sort -u)
+
+PRJDIRS = $(shell ls *.v2p | sed 's:.v2p::')
+
+MBSRCS = $(wildcard */*.cpp) 
 MBOBJS = $(MBSRCS:.cpp=.o)
 MBARCHIVE = lib$(MODELS).a
 
-INCDIR = -I. -I$(LOCAL) -I$(MODELS)
+HDIR = $(shell ls */*.h | sed 's:/[^/]*$$::' | sort -u)
+IDIR = $(foreach i,$(HDIR),-I$i)
+
+INCDIR = -I. $(IDIR)
 
 LIBS   = -L. -l$(MODELS)
-EXE    = $(MODULE).x
 DFILES = $(OBJS:.o=.d) $(MBOBJS:.o=.d)
 
 S ?= sim
@@ -37,13 +45,13 @@ N ?= top
 
 .SUFFIXES: .cpp .cc .o .x .h
 
-$(EXE): $(OBJS) $(MBARCHIVE)
-	$(CC) $(CFLAGS) $(INCDIR) -o $@ $(OBJS) $(MBOBJS) $(XL_UVMC) 2>&1 | c++filt
-#	$(CC) $(CFLAGS) $(INCDIR) -o $@ $(OBJS) $(LIBS) 2>&1 | c++filt
-#	if [ ! -n "$$V2_HOME" ] ; \
-#	then vista_build_project $(Project); fi
+$(EXE): vista.ini $(OBJS) $(MBARCHIVE) $(SC_MAIN)
+	$(CC) $(CFLAGS) $(INCDIR) -o $@ $(SC_MAIN) $(OBJS) $(LIBS) 2>&1 | c++filt
 
-vistagui: $(EXE)
+projects:
+	for p in $(PRJDIRS); do vista_build_project $$p; done
+
+vistagui: vista.ini $(EXE)
 
 $(MBARCHIVE): $(MBOBJS)
 	ar rcs $@ $(MBOBJS)
@@ -61,7 +69,7 @@ $(MBARCHIVE): $(MBOBJS)
 	@mv $*.d.tmp $*.d
 
 clean:
-	rm -rf vista_work Project Source Object sim papoulis_project work
+	rm -rf vista_work $(PRJDIRS) Object sim papoulis_project work
 	find . -name "*~" -exec rm {} \;
 	find . -name "*.d" -exec rm {} \;
 	find . -name "*.gcno" -exec rm {} \;
@@ -73,16 +81,15 @@ clean:
 codeblocks: 
 	codeblocks codeblocks.cbp 
 
-vista: $(EXE) $T
+vista: vista.ini $(EXE) $T
 	vista -sc22 -trace-delta-cycles -tsv -memory-profiling \
 		-event-debugging -with-cause -trace-all-sockets \
 		-params $P -simdir $S -memory-profiling \
 		-exec $(EXE) -simscript $T
 
-batch: $(EXE) $T
+batch: vista.ini $(EXE) $T
 	vista -sc22 -tsv -simscript $T -params $P -simdir $S \
 		-trace-all-sockets -batch -exec $(EXE)
-#		-batch -exec $(EXE)
 
 run: $(EXE)
 	./$(EXE)
@@ -91,22 +98,37 @@ events: $S
 	vista_dump_events $S -kind initiator_socket -name $N > events2
 	diff events*
 
+$P:
+	touch $P
+
 $T:
 	echo "#trace_transactions -name * -tree" > $T
 	echo "#trace -name * -tree" >> $T
 	echo "#trace -kind sc_object_attribute -name * -tree -unlimited" >> $T
 
-#COMMAND = "declare_communication_channel_type -t mb_fifo mb_fifo.h -operation_names {
-#	     get nb_get nb_can_get peek nb_peek nb_can_peek put nb_put nb_can_put}; \
+COMMAND = "if {![does_tlm_library_exist $$mb]} \
+	      {create_tlm_library $$mb $$mb}; \
+	   reload_tlm_library $$mb;\
+	   foreach n [glob -directory $$mb -tails *.mb] { \
+	     puts \$$n; save_model -g TLM/$$mb/[lindex [split \$$n .] 0] }"
 
-COMMAND = "if {![does_tlm_library_exist $(MODELS)]} \
-	      {create_tlm_library $(MODELS) $(MODELS)}; \
-	   reload_tlm_library $(MODELS);\
-	   foreach n [glob -directory $(MODELS) -tails *.mb] { \
-	     puts \$$n; save_model -g TLM/$(MODELS)/[lindex [split \$$n .] 0] }"
+mb: vista.ini
+	if [ $(NUMMBFILES) -gt "0" ]; then \
+	  for mb in $(MBDIRS); do \
+	    echo $(COMMAND); \
+	    vista_model_builder -c $(COMMAND); \
+	    done; \
+	    fi;
 
-mb: 
-	if [ -e $(MODELS) ]; then vista_model_builder -c $(COMMAND); fi
+vista.ini:
+	echo "Creating vista.ini"
+	@echo -n "ProjectsNamesMap {" > vista.ini
+	@for p in $(PRJDIRS); do echo -n "$$p.v2p $$p " >> vista.ini; done
+	@echo "}" >> vista.ini
+	@echo -n "LibrariesMap {" >> vista.ini
+	@for d in $(MBDIRS); do echo -n "$$d $$d " >> vista.ini; done
+	@echo "}" >> vista.ini
+	
 
 TemplatesCOMMAND = \
 	"if {[ file exist protocols ]} \
@@ -121,11 +143,6 @@ $(MBCUSTOM): templates
 	if [ -e templates ]; then \
 	   vista_model_builder -c $(TemplatesCOMMAND); fi
 
-papoulis_project:
-	if [ -e $(HOME)/include/custom_models.tcl ]; then \
-		vista_mb -c "source $(HOME)/include/custom_models.tcl"; fi
-	@if [ -e $(MODELS) ]; then vista_model_builder -c $(COMMAND); fi
-
 pa: $(EXE)
 	vista_analysis sim
 
@@ -134,5 +151,29 @@ cov: $(EXE)
 	vista_run run.x
 	lcov -d . -c -o app.info
 	genhtml app.info
+
+define scmain
+#include "systemc.h"
+#include "top.h"
+
+#define TOP top
+
+using namespace std;
+using namespace sc_core;
+
+int sc_main(int argc, char *argv[]) {
+
+  TOP *inst_top = new TOP("top");
+
+  sc_start();
+
+  delete inst_top;
+  return 0;
+}
+endef
+
+export scmain
+$(SC_MAIN):
+	echo "$$scmain" > $(SC_MAIN)
 
 -include $(DFILES)
