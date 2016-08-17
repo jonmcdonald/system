@@ -46,7 +46,7 @@ bool WaveSampleGenerator_pv::Slave_callback_read(mb_address_type address, unsign
   double ratio = current_time / period;
   double fractional = ratio - floor(ratio);
   double degrees_in_radions = fractional * 2 * M_PI;
-  double sin_of_ratio = sin(degrees_in_radions);
+  double sin_of_ratio = (sin(degrees_in_radions) + 1.0) / 2;
   double signal = sin_of_ratio * (double)((Max - Min) + Min);
   if (signal < 0) {
     signal = 0;

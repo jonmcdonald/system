@@ -90,11 +90,25 @@ class NetworkSwitchLevel1_pv : public NetworkSwitchLevel1_pv_base {
   ////////////////////////////////////////
   // User Code
   ////////////////////////////////////////
+// Send packets out master port using port Fifo.
   bool send_packet(unsigned long master_port_index, mb_address_type address, unsigned char * data, unsigned int size);
+
+// Puts the packet into the port Fifo
+  bool NodeFifoPut(unsigned int port_index, ethernet_packet * packet);
+
+// Thread which forwards packets from NodeFifo0 to NodeMaster0 port
   void NodeThread0();
+
+// Thread which forwards packets from NodeFifo1 to NodeMaster1 port
   void NodeThread1();
+
+// Thread which forwards packets from NodeFifo2 to NodeMaster2 port
   void NodeThread2();
+
+// Thread which forwards packets from NodeFifo3 to NodeMaster3 port
   void NodeThread3();
+
+// Thread which forwards packets from NodeFifo4 to NodeMaster4 port
   void NodeThread4();
 
   std::map<unsigned long, unsigned long> MacAddressMap;

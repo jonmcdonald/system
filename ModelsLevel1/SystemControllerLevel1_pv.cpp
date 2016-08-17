@@ -34,34 +34,42 @@ using namespace std;
 //constructor
 SystemControllerLevel1_pv::SystemControllerLevel1_pv(sc_module_name module_name) 
   : SystemControllerLevel1_pv_base(module_name) {
-  ProcessFifo.set_minimal_delay(ProcessDelayInClocks *clock);
-  ProcessFifo.nb_bound(ProcessFifoSize);
-  max_sample = 0;
-  min_sample = USHRT_MAX;
+  ProcessFifo.set_minimal_delay(ProcessDelayInClocks *clock); // sets the processing delay for the packet
+  ProcessFifo.nb_bound(ProcessFifoSize);  // sets the size of the System Controller fifo
+  max_sample = 0;                         // sets the maximum stample valaue (for all samples to the lowest value)
+  min_sample = USHRT_MAX;                 // sets the minimum stample valaue (for all samples to the highest value)
 
-  SC_THREAD(ProcessThread);
+  SC_THREAD(ProcessThread);               // starts the main process thread
 }      
 
 // Read callback for Slave port.
 // Returns true when successful.
 bool SystemControllerLevel1_pv::Slave_callback_read(mb_address_type address, unsigned char* data, unsigned size) {
-  
+  // READ NOT USED
   return true;
 }
 
 // Write callback for Slave port.
 // Returns true when successful.
 bool SystemControllerLevel1_pv::Slave_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
-  ethernet_packet * packet = new ethernet_packet(data, (unsigned short)size);
-  if (ProcessFifo.nb_can_put()) {
-    wait(size * clock * 8);
-    ProcessFifo.put(packet);
-    return true;
-  } else {
-    cout << sc_time_stamp() << "System Controller Fifo full, packet dropped" << endl;
+
+  wait(size * 8 * clock);
+
+  ethernet_packet * packet = new ethernet_packet(data, (unsigned short)size);  // create a new packet object for the received data
+
+  // ignore packets to itself or source or destimation of Zero
+  if ((packet->getMacSource() != MacAddress) && (packet->getMacSource() > 0 ) && (packet->getMacDestination() > 0)) {
+    if (ProcessFifo.nb_can_put()) { // check to see if the fifo has space for the new data
+      ProcessFifo.put(packet);      // if there is space add it to the fifo
+      return true;                  // return true and exit for callback
+    } else {
+      cout << sc_time_stamp() << " System Controller Fifo Full; Packet Dropped" << endl;
+      packet->Print();
+    }
   }
     
-  return false;
+  delete packet;                   // delete the newly unused packet
+  return false;                    // return packet falure
 } 
 
 
@@ -82,45 +90,45 @@ bool SystemControllerLevel1_pv::Slave_get_direct_memory_ptr(mb_address_type addr
  
 
 // in order to minimize merging conflicts, we recommend to add your functions after this comment
+
+// Main processing thread
 void SystemControllerLevel1_pv::ProcessThread() {
-  ethernet_packet * packet = new ethernet_packet();
-  packet->set_mac_destination((unsigned long)0);
-  packet->set_mac_source(MacAddress);
-  packet->set_payload_size(0);
-  packet->calc_fcr();
-  mb_sync();
-  packet->time_stamp = sc_time_stamp();
 
-  unsigned char * ucpacket = packet->get_packet();
-  Master_write(0, ucpacket, packet->get_packet_size());
-  delete ucpacket;
-  delete packet;
-
+  // loop for every waiting for packets
   while (true) {
-    packet = ProcessFifo.get();
+    ethernet_packet *  packet = ProcessFifo.get();               // get next packet form fifo
 
-    unsigned long mac_source = packet->get_mac_source_as_long();
+    unsigned long mac_source = packet->getMacSource();           // get source mac addres (used as the Acknowledgement destimation address)
 
-    unsigned short * samples = (unsigned short *)packet->get_payload();
-    for (unsigned int nsample = 0; nsample < (unsigned int)(packet->get_payload_size() / 2); nsample++) {
-      if (samples[nsample] > max_sample) {
+    unsigned char * ucsamples = packet->getPayload();            // get packet sample data as unsigned char
+    unsigned short * samples = (unsigned short *) ucsamples;     // point to samples as an array of unsigned short integers (16-bit)
+
+    unsigned int nosamples = (unsigned int)(packet->getPayloadSize() / 2); // number of sample = half the size of the payload size
+    for (unsigned int nsample = 0; nsample < nosamples; nsample++) { // loop for the number of samples
+      if (samples[nsample] > max_sample) {                         // check to see if it is the largesst sample value
         max_sample = samples[nsample];
-      }
-      if (samples[nsample] < min_sample) {
+      } 
+      if (samples[nsample] < min_sample) {                         // check to see if it is the smallets sample value
         min_sample = samples[nsample];
       }
     }
 
-    unsigned short offset = (max_sample - min_sample) / 2;
-    unsigned char * ucoffset = (unsigned char *) &offset;
+    unsigned short offset = (max_sample - min_sample) / 2;       // caclulate a new offset value
+    unsigned char * ucoffset = (unsigned char *) &offset;        // point to the offset value as unsigned char array
 
-    delete samples;
-    delete packet;
+    delete samples;    // delete samples array payload from received packet
+    delete packet;     // delete received packet
 
-    packet = new ethernet_packet(mac_source, MacAddress, (unsigned char *) ucoffset, 2);
-    unsigned char * ucpacket = packet->get_packet();
-    Master_write(mac_source, ucpacket, packet->get_packet_size());
+    if (mac_source == MacAddress) { // validate mac source address
+      cout << sc_time_stamp() << " Destination and source mac address match ....DAB" << endl;
+    } else {
+      packet = new ethernet_packet(mac_source, MacAddress, (unsigned char *) ucoffset, 2); // create new packet
 
-    delete packet;
+      unsigned char * ucpacket = packet->getPacket();                                     // set packet payload to offset
+      Master_write(mac_source, ucpacket, packet->getPacketSize());                       // send packet 
+
+      delete packet;                                                                       // delete packet
+      delete ucpacket;                                                                     // delete unsigned char array version of packet
+    }
   }
 }

@@ -23,7 +23,7 @@
 //* The SensorNodeLevel1_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 15, 2016 05:30:52 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
 //*>
 
 
@@ -2467,6 +2467,8 @@ class SensorNodeLevel1_pv_base : public SensorNodeLevel1_pv_base_mb_compatibilit
   mb::mb_variable<sc_dt::uint64> NumberOfSamplesSent;
   mb::mb_variable<sc_dt::uint64> NumberOfLostSamples;
   mb::mb_variable<int> SampleFifoCount;
+  mb::mb_variable<sc_dt::uint64> SampleDroppedCount;
+  mb::mb_variable<sc_dt::int64> TimeOfFlightInNanoSeconds;
   mb::mb_fifo<unsigned short> SampleFifo;
 };
 
@@ -2498,7 +2500,7 @@ class SensorNodeLevel1_pv_base : public SensorNodeLevel1_pv_base_mb_compatibilit
 //* The SensorNodeLevel1_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 15, 2016 05:30:52 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
 //*>
 
 
@@ -2625,12 +2627,14 @@ protected:
 
  
 public:
-  enum variable_enum {TotalNumberOfSamples_idx, NumberOfSamplesSent_idx, NumberOfLostSamples_idx, SampleFifoCount_idx };
+  enum variable_enum {TotalNumberOfSamples_idx, NumberOfSamplesSent_idx, NumberOfLostSamples_idx, SampleFifoCount_idx, SampleDroppedCount_idx, TimeOfFlightInNanoSeconds_idx };
 protected:
   mb::mb_t_variable<sc_dt::uint64> TotalNumberOfSamples;
   mb::mb_t_variable<sc_dt::uint64> NumberOfSamplesSent;
   mb::mb_t_variable<sc_dt::uint64> NumberOfLostSamples;
-  mb::mb_t_variable<int> SampleFifoCount; 
+  mb::mb_t_variable<int> SampleFifoCount;
+  mb::mb_t_variable<sc_dt::uint64> SampleDroppedCount;
+  mb::mb_t_variable<sc_dt::int64> TimeOfFlightInNanoSeconds; 
   
   
   
@@ -2720,7 +2724,7 @@ protected:
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 15, 2016 05:30:52 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
 //*>
 
 
@@ -2773,7 +2777,7 @@ public:
     dmi_enabled = ::mb::sysc::sdInitParameter<bool>("dmi_enabled", true, hier_name);
     warning_level = ::mb::sysc::sdInitParameter<const char*>("warning_level", "WARNING", hier_name);
     NetworkSlave_pipeline_length = ::mb::sysc::sdInitParameter<unsigned int>("NetworkSlave_pipeline_length", 2, hier_name);
-    SampleIntervalInClocks = ::mb::sysc::sdInitParameter<unsigned int>("SampleIntervalInClocks", 100, hier_name);
+    SampleIntervalInClocks = ::mb::sysc::sdInitParameter<unsigned int>("SampleIntervalInClocks", 200, hier_name);
     NumberOfSamplesPerPacket = ::mb::sysc::sdInitParameter<unsigned int>("NumberOfSamplesPerPacket", 10, hier_name);
     MinRetryDelayInClocks = ::mb::sysc::sdInitParameter<unsigned int>("MinRetryDelayInClocks", 10, hier_name);
     MaxRetryDelayInClocks = ::mb::sysc::sdInitParameter<unsigned int>("MaxRetryDelayInClocks", 100, hier_name);
@@ -2864,7 +2868,7 @@ public:
     dmi_enabled = ::mb::sysc::sdInitParameter<bool>("dmi_enabled", true, hier_name);
     warning_level = ::mb::sysc::sdInitParameter<const char*>("warning_level", "WARNING", hier_name);
     NetworkSlave_pipeline_length = ::mb::sysc::sdInitParameter<unsigned int>("NetworkSlave_pipeline_length", 2, hier_name);
-    SampleIntervalInClocks = ::mb::sysc::sdInitParameter<unsigned int>("SampleIntervalInClocks", 100, hier_name);
+    SampleIntervalInClocks = ::mb::sysc::sdInitParameter<unsigned int>("SampleIntervalInClocks", 200, hier_name);
     NumberOfSamplesPerPacket = ::mb::sysc::sdInitParameter<unsigned int>("NumberOfSamplesPerPacket", 10, hier_name);
     MinRetryDelayInClocks = ::mb::sysc::sdInitParameter<unsigned int>("MinRetryDelayInClocks", 10, hier_name);
     MaxRetryDelayInClocks = ::mb::sysc::sdInitParameter<unsigned int>("MaxRetryDelayInClocks", 100, hier_name);

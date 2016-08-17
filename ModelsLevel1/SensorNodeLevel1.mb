@@ -10,7 +10,7 @@ add_port "NetworkMaster" /TLM/protocols/generic master 8 -bind_mode mandatory
 add_port "NetworkSlave" /TLM/protocols/generic slave 8 -bind_mode mandatory
 
 # === parameters ===
-add_parameter "SampleIntervalInClocks" 100 uint32 {}
+add_parameter "SampleIntervalInClocks" 200 uint32 {}
 add_parameter "NumberOfSamplesPerPacket" 10 uint32 {}
 add_parameter "MinRetryDelayInClocks" 10 uint32 {}
 add_parameter "MaxRetryDelayInClocks" 100 uint32 {}
@@ -45,6 +45,8 @@ declare_variable TotalNumberOfSamples -type uint64
 declare_variable NumberOfSamplesSent -type uint64
 declare_variable NumberOfLostSamples -type uint64
 declare_variable SampleFifoCount -type int32
+declare_variable SampleDroppedCount -type uint64
+declare_variable TimeOfFlightInNanoSeconds -type int64
 declare_communication_channel SampleFifo mb_fifo {} -template_parameters {unsigned short}
 
 # === generate options ===

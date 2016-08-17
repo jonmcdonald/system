@@ -23,7 +23,7 @@
 //* The SensorNodeLevel1_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 15, 2016 05:34:29 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
 //*>
 
 
@@ -52,7 +52,9 @@ SensorNodeLevel1_pv_base::SensorNodeLevel1_pv_base(sc_module_name& module_name) 
   VISTA_MB_PV_INIT_MEMBER(TotalNumberOfSamples),
   VISTA_MB_PV_INIT_MEMBER(NumberOfSamplesSent),
   VISTA_MB_PV_INIT_MEMBER(NumberOfLostSamples),
-  VISTA_MB_PV_INIT_MEMBER(SampleFifoCount) {
+  VISTA_MB_PV_INIT_MEMBER(SampleFifoCount),
+  VISTA_MB_PV_INIT_MEMBER(SampleDroppedCount),
+  VISTA_MB_PV_INIT_MEMBER(TimeOfFlightInNanoSeconds) {
   
 
   // Sensor - not a vector port
@@ -111,7 +113,7 @@ SensorNodeLevel1_pv_base_parameters::SensorNodeLevel1_pv_base_parameters(sc_obje
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, dmi_enabled, true),
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, warning_level, "WARNING"),
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, NetworkSlave_pipeline_length, 2),
-  SD_INITIALIZE_PARAMETER_EXTERNALLY(object, SampleIntervalInClocks, 100),
+  SD_INITIALIZE_PARAMETER_EXTERNALLY(object, SampleIntervalInClocks, 200),
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, NumberOfSamplesPerPacket, 10),
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, MinRetryDelayInClocks, 10),
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, MaxRetryDelayInClocks, 100),
@@ -188,7 +190,7 @@ void SensorNodeLevel1_pv_base_parameters::print_parameters()
 //* The SensorNodeLevel1_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 15, 2016 05:34:29 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
 //*>
 
 
@@ -382,7 +384,7 @@ SensorNodeLevel1_t_base::SensorNodeLevel1_t_base(sc_module_name& module_name, lo
   SD_INITIALIZE_PARAMETER(dmi_enabled, true),
   SD_INITIALIZE_PARAMETER(warning_level, "WARNING"),
   SD_INITIALIZE_PARAMETER(NetworkSlave_pipeline_length, 2),
-  SD_INITIALIZE_PARAMETER(SampleIntervalInClocks, 100),
+  SD_INITIALIZE_PARAMETER(SampleIntervalInClocks, 200),
   SD_INITIALIZE_PARAMETER(NumberOfSamplesPerPacket, 10),
   SD_INITIALIZE_PARAMETER(MinRetryDelayInClocks, 10),
   SD_INITIALIZE_PARAMETER(MaxRetryDelayInClocks, 100),
@@ -396,7 +398,9 @@ SensorNodeLevel1_t_base::SensorNodeLevel1_t_base(sc_module_name& module_name, lo
   TotalNumberOfSamples("TotalNumberOfSamples", this),
   NumberOfSamplesSent("NumberOfSamplesSent", this),
   NumberOfLostSamples("NumberOfLostSamples", this),
-  SampleFifoCount("SampleFifoCount", this)
+  SampleFifoCount("SampleFifoCount", this),
+  SampleDroppedCount("SampleDroppedCount", this),
+  TimeOfFlightInNanoSeconds("TimeOfFlightInNanoSeconds", this)
 {
   bool separate_read_channel = false;  
   bool separate_write_channel = false;
@@ -681,7 +685,7 @@ bool SensorNodeLevel1_t_base::portHasRegisters(unsigned portIndex) {
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 15, 2016 05:34:29 PM, (user: kenm)
+//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
 //*>
 
 #include "SensorNodeLevel1_model.h"

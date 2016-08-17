@@ -34,24 +34,45 @@ using namespace std;
 //constructor
 SensorNodeLevel1_pv::SensorNodeLevel1_pv(sc_module_name module_name) 
   : SensorNodeLevel1_pv_base(module_name) {
-  SampleFifo.nb_bound(SampleFifoSize);
-  SC_THREAD(IntervalSampleThread);
-  SC_THREAD(MainThread);  
+
+  SampleFifo.nb_bound(SampleFifoSize); // set the size of the Sample Fifo
+
+  SC_THREAD(IntervalSampleThread);     // Start Sample Interval timer
+  SC_THREAD(MainThread);               // Start the Nodes main thread
 }      
 
 // Read callback for NetworkSlave port.
 // Returns true when successful.
 bool SensorNodeLevel1_pv::NetworkSlave_callback_read(mb_address_type address, unsigned char* data, unsigned size) {
+  // READ NOT USED
   return true;
 }
 
 // Write callback for NetworkSlave port.
 // Returns true when successful.
 bool SensorNodeLevel1_pv::NetworkSlave_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
+
+  // convert incoming data to a ethernet packet object
   ethernet_packet * packet = new ethernet_packet(data, (unsigned short)size);
-  packet->print();
-  if ((packet->get_mac_source_as_long() == MacAddressSystemController) && (packet->get_payload_size() == 2)) {
+  
+  // check for valid MAC addresses ( > 0 )
+  if ((packet->getMacDestination() <= 0) || (packet->getMacSource() <= 0)) {
+    delete packet; // delete unused packet object
+    return false;
+  }
+  // Check to see if the Source MAC is the SystemController and the payload size is 2
+  if ((packet->getMacSource() == MacAddressSystemController) && (packet->getPayloadSize() == 2)) {
+    // Indicate a Acknowledgement is being received
     AcknowledgeMessageReceived = true;
+
+    if (mb::mb_token_ptr current_token = get_current_token()) { // Get the thread current token (Only one token per thread)
+      // Set the time stamp in current token the first time stampl to sample set to be sent 
+      sc_time start_time = current_token->getFieldAsDouble("StartTimeDouble") * sc_get_time_resolution();
+      sc_time delta_time = start_time - sc_time_stamp();
+      TimeOfFlightInNanoSeconds = delta_time.to_seconds() * 1.0e+9;
+    }
+
+    // Notify Acknowledgement to main thread as after a delta cycle (SC_ZERO_TIME)
     AcknowledgeEvent.notify(SC_ZERO_TIME);
   }
   return true;
@@ -75,94 +96,112 @@ bool SensorNodeLevel1_pv::NetworkSlave_get_direct_memory_ptr(mb_address_type add
  
 
 // in order to minimize merging conflicts, we recommend to add your functions after this comment
+
+// Interval Timer thread
 void SensorNodeLevel1_pv::IntervalSampleThread() {
-  unsigned int ntotal =  TotalNumberOfPackets * NumberOfSamplesPerPacket;
-  for (unsigned int ninterval = 0; ninterval < ntotal; ninterval++) {
-    unsigned short sample = 0;
+  unsigned int ntotal =  TotalNumberOfPackets * NumberOfSamplesPerPacket; // calculate the total number of samples
+  for (unsigned int ninterval = 0; ninterval < ntotal; ninterval++) { // loop for the total number of samples
+    unsigned short sample = 0; // variable to hold the sample
 
-    wait(SampleIntervalInClocks * clock);
+    wait(SampleIntervalInClocks * clock); // wait for intervel period
 
-    mb::mb_token_ptr TokenID = new mb::mb_token();
-    set_current_token (TokenID);
-    mb_sync();
-    TokenID->setField("StartTimeDouble", sc_time_stamp().to_double());
+    // Saves the time for which the sample data was creation (using Tokens)
+    // this allows the time stamp to be passed along with the data behide the sense
+    // This is used for verification and analysis
+    mb::mb_token_ptr current_token = get_current_token(); // get the current token
+    current_token = new mb::mb_token();
+    if (current_token) { // if there was an existing token
+      current_token = new mb::mb_token();
+      set_current_token(current_token); // set a new token
+    }
     
-    Sensor_read(0, (unsigned char *) &sample, 2);
-    SampleFifo.put(sample);
-    SampleFifoCount = SampleFifo.used() + 1; // adding 1 because of SystemC update delay.
+    mb_sync();                                                      // upate the system time
+    current_token->setField("StartTimeDouble", sc_time_stamp().to_double()); // add a new vlaue to the token for the time stamp
     
-    TotalNumberOfSamples = TotalNumberOfSamples + 1;
+    // read data from the sensor threw the sensor port
+    Sensor_read(0, (unsigned char *) &sample, 2);                     // read two charactors and conver them to an unsigned short
+    if (SampleFifo.nb_can_put()) {                                    // check to see if there is room in the fifo
+      SampleFifo.put(sample);                                         // add the sample to the fifo if space is availible
+      //      SampleFifoCount = SampleFifo.used() + 1;                            // adding 1 because of SystemC update delay.
+    } else {                                                          // if no room if fifo drop the sample
+      SampleDroppedCount = SampleDroppedCount + 1;                    // count the dropped samples
+    }
+    
+    TotalNumberOfSamples = TotalNumberOfSamples + 1;                  // tract the totalNumber of Samples
   }
 }
 
+// Main thread which gather samples from the sample Fifo and sends them out into the network.
 void SensorNodeLevel1_pv::MainThread() {
+  // A array to hold a predefined number of samples to be sent
   unsigned short * samples = new unsigned short [NumberOfSamplesPerPacket];
+
+  // A pointer to the sample array as Unsigned Char's
   unsigned char * ucsample = (unsigned char *) samples;
 
-  ethernet_packet * dummy_packet = new ethernet_packet();
-  dummy_packet->set_mac_destination((unsigned long)0);
-  dummy_packet->set_mac_source(MacAddress);
-  dummy_packet->set_payload_size(0);
-  dummy_packet->calc_fcr();
-  mb_sync();
-  dummy_packet->time_stamp = sc_time_stamp();
-
-  unsigned char * ucdummy_packet = dummy_packet->get_packet();
-  NetworkMaster_write(0, ucdummy_packet, dummy_packet->get_packet_size());
-  delete ucdummy_packet;
-  delete dummy_packet;
-  
-
+  // loop for sending a  predefined number od sample packets.
   for (unsigned int npacket = 0; npacket < TotalNumberOfPackets; npacket++) {
+
+    // New variable to hold the first sample time stamp as double.
     double sample_start_time = -1;
 
+    // loop gathering the predefined number od samples.
     for (unsigned int nsample = 0; nsample < NumberOfSamplesPerPacket; nsample++) {
+      // vraiable to hold the next sample from the sample fifo
       unsigned short sample;
 
-      sample = SampleFifo.get();
-      samples[nsample] = sample;
+      sample = SampleFifo.get();               // get sample from fifo
+      //      SampleFifoCount = SampleFifo.used() - 1; 
+      samples[nsample] = sample;               // add new sample from fifo to sample arraay
 
-      mb::mb_token_ptr TokenID;
-      if (sample_start_time < 0) {
-        if (TokenID = get_current_token()) {
-          if (TokenID->hasField("StartTimeDouble")) {
-            sample_start_time = TokenID->getFieldAsDouble("StartTimeDouble");
+      if (sample_start_time < 0) { // If vlaue is less than zero it the first time sample from the block of samples
+        // Check for valid token
+        if (mb::mb_token_ptr current_token = get_current_token()) { // Get the thread current token (Only one token per thread)
+          if (current_token->hasField("StartTimeDouble")) { // verify it has a fied containing a time stamp field
+            sample_start_time = current_token->getFieldAsDouble("StartTimeDouble"); // save first time stamp for set of samples
           }
         }
       }
-      
-      if (!(TokenID = get_current_token())) {
-        mb::mb_token_ptr TokenID = new mb::mb_token();
-      }
-      TokenID->setField("StartTimeDouble", sample_start_time);        
+    }
+    
+    if (mb::mb_token_ptr current_token = get_current_token()) { // get the current token
+      // Set the time stamp in current token the first time stamp to sample set to be sent 
+      current_token->setField("StartTimeDouble", sample_start_time);
     }
 
+    // Create a new packet for sending the samples
     ethernet_packet * packet = new ethernet_packet();
-    packet->set_mac_destination(MacAddressSystemController);
-    packet->set_mac_source(MacAddress);
-    packet->set_payload_size((unsigned short)(NumberOfSamplesPerPacket * sizeof(unsigned short)));
-    packet->set_payload(ucsample);
-    packet->calc_fcr();
-    mb_sync();
-    packet->time_stamp = sc_time_stamp();
+    
+    packet->setMacDestination(MacAddressSystemController); // set the Destination mac address    
+    packet->setMacSource(MacAddress);                      // Set the source mac address for the packet.
+    packet->setPayloadSize((unsigned short)(NumberOfSamplesPerPacket * sizeof(unsigned short))); // set packet data size
+    packet->setPayload(ucsample);                          // set data (unsigned char)
+    packet->calcFcr();                                     // Calculate error correction and detection and add to packet
+    mb_sync();                                             // sycronize system time before grabbing time stamp
+    packet->TimeStamp = sc_time_stamp();                  // set packet time stamp. used for debugging
 
-    unsigned char * ucpacket = packet->get_packet();
+    unsigned char * ucpacket = packet->getPacket();       // get unsigned char array version of packet
 
-    for (unsigned int ntry = 0; ntry < MaxNumberOfRetrys; ntry++) {
-      NetworkMaster_write(MacAddressSystemController, ucpacket, packet->get_packet_size());
-      wait(AcknowledgeTimeoutInClocks * clock, AcknowledgeEvent);
-      if (AcknowledgeMessageReceived) {
-        NumberOfSamplesSent = NumberOfSamplesSent + 10;
-        NumberOfLostSamples = TotalNumberOfSamples - (NumberOfSamplesSent + 10);
-        break;
+    // loops trying to send the newly created pack a predeturmend number of times
+    for (unsigned int ntry = 0; ntry < MaxNumberOfRetrys; ntry++) {  
+      NetworkMaster_write(MacAddressSystemController, ucpacket, packet->getPacketSize()); // send packet of samples
+      if (!AcknowledgeMessageReceived) { // if Acknowledgement not recieved, wait for a Acknowledgement even
+        wait(AcknowledgeTimeoutInClocks * clock, AcknowledgeEvent);  // waits for Acknowledgement event (see NetworkSlave_callback_write) or timeout
+      }
+      if (AcknowledgeMessageReceived) { // check to see if it was a timeout or a valid Acknowledgement event
+        NumberOfSamplesSent = NumberOfSamplesSent + 10; // keep track of the number of samples sent
+        NumberOfLostSamples = TotalNumberOfSamples - (NumberOfSamplesSent + 10); // keep track of the number of lost packets.
+        break; // exit loop if sent sample was Acknowledge
+      } else {
+        cout << sc_time_stamp() << " " << name() << "*******   TIME OUT   ********" << endl;
       }
     }
-    if (!AcknowledgeMessageReceived) {
+    if (!AcknowledgeMessageReceived) { // if after a predefined number of tries give up and send next set of samples.
       cout << sc_time_stamp() << " " << name() << " ERROR: Packet Lost *******************" << endl;
-      AcknowledgeMessageReceived = false;
     }
-    delete ucpacket;
-    delete packet;
+    AcknowledgeMessageReceived = false; // reset Acknowledge flag
+    delete ucpacket; // delete unsigned char version of packet
+    delete packet; // delete packet
   }
 }
 

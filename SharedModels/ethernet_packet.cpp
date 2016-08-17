@@ -1,45 +1,36 @@
 #include "ethernet_packet.h"
 #include "model_builder.h"
 
-
+// Default constructor
 ethernet_packet::ethernet_packet() {
-  clear();
-  time_stamp = sc_time_stamp();
-  status = normal;
+  Clear();
+  TimeStamp = sc_time_stamp();
 }
 
+// Constructor from an unsigned char array
 ethernet_packet::ethernet_packet (unsigned char * newpacket, unsigned short size) {
-  clear();
+  Clear();
   memcpy(packet, newpacket, size);
-  set_mac_destination(&packet[8]);
-  set_mac_source(&packet[14]);
-  set_packet_size(&packet[20]);
-  calc_fcr();
-  time_stamp = sc_time_stamp();
+  setMacDestination(&packet[8]);
+  setMacSource(&packet[14]);
+  setPacketSize(&packet[20]);
+  calcFcr();
+  TimeStamp = sc_time_stamp();
 }
 
+// Contructor based of MAC addrsses
 ethernet_packet::ethernet_packet(unsigned long destination, unsigned long source, unsigned char * new_payload, unsigned short new_payload_size) {
-  clear();
-  set_mac_destination(destination);
-  set_mac_source(source);
-  set_payload_size(new_payload_size);
+  Clear();
+  setMacDestination(destination);
+  setMacSource(source);
+  setPayloadSize(new_payload_size);
   memcpy(&packet[22], new_payload, new_payload_size);
-  calc_fcr();
-  time_stamp = sc_time_stamp();
+  calcFcr();
+  TimeStamp = sc_time_stamp();
 }
 
-ethernet_packet::ethernet_packet(unsigned long destination, unsigned long source, unsigned char * new_payload, unsigned short new_payload_size, unsigned short new_failed_size) {
-  clear();
-  set_mac_destination(destination);
-  set_mac_source(source);
-  set_payload_size(new_payload_size);
-  memcpy(&packet[22], new_payload, new_payload_size);
-  calc_fcr();
-  set_failed_size(new_failed_size);
-  time_stamp = sc_time_stamp();
-}
-
-void ethernet_packet::clear() {
+// set all values to defualts and an empty payload
+void ethernet_packet::Clear() {
   for (unsigned int p = 0; p < 1526; p++) {
     if (p < 7) {
       packet[p] = 0x55;
@@ -55,31 +46,28 @@ void ethernet_packet::clear() {
   mac_destination = 0;
   mac_source = 0; 
   payload_size = 0;
-  failed_size = 0;
-  time_stamp = sc_time_stamp();
+  TimeStamp = sc_time_stamp();
 }
 
-unsigned char * ethernet_packet::get_preamble() {
+// Gets to the Preamble "0x55 0x55 0x55 0x55 0x55 0x55 0x55"
+unsigned char * ethernet_packet::getPreamble() {
   unsigned char *newchar = new unsigned char[7];
   memcpy(newchar, packet, 7);
   return newchar;
 }
 
-unsigned char ethernet_packet::get_start_of_frame_delimiter(){
+// Gets the ethernet delimiter "0xD5"
+unsigned char ethernet_packet::getDelimiter(){
   return packet[7];
 }
 
-unsigned long ethernet_packet::get_mac_destination_as_long() {
+// returns the packets desination MAC address as an unsigned long
+unsigned long ethernet_packet::getMacDestination() {
   return mac_destination;
 }
 
-unsigned char * ethernet_packet::get_mac_destination_as_char() {
-  unsigned char *newchar = new unsigned char[6];
-  memcpy(newchar, &packet[8], 6);
-  return newchar;
-}
-
-void ethernet_packet::set_mac_destination(unsigned long Destination) {
+// sets the packets desination MAC address from an unsigned long
+void ethernet_packet::setMacDestination(unsigned long Destination) {
   mac_destination = Destination;
   unsigned char *  cDestination = (unsigned char *)&mac_destination;
   packet[8]  = cDestination[5];
@@ -90,7 +78,8 @@ void ethernet_packet::set_mac_destination(unsigned long Destination) {
   packet[13] = cDestination[0];
 }
 
-void ethernet_packet::set_mac_destination(unsigned char * Destination) {
+// sets the packets desination MAC address from an unsigned char array (size: 2 Bytes Big endian)
+void ethernet_packet::setMacDestination(unsigned char * Destination) {
   memcpy(&packet[8], Destination, 6);
   unsigned char *  cDestination = (unsigned char *)&mac_destination;
   cDestination[7] = 0x0;
@@ -103,17 +92,13 @@ void ethernet_packet::set_mac_destination(unsigned char * Destination) {
   cDestination[0] = packet[13];
 }
 
-unsigned long ethernet_packet::get_mac_source_as_long() {
+// returns the packets source MAC address as an unsigned long
+unsigned long ethernet_packet::getMacSource() {
   return mac_source;
 }
 
-unsigned char * ethernet_packet::get_mac_source_as_char() {
-  unsigned char *newchar = new unsigned char[6];
-  memcpy(newchar, &packet[14], 6);
-  return newchar;
-}
-
-void ethernet_packet::set_mac_source(unsigned long Source) {
+// sets the packets source MAC address from an unsigned long
+void ethernet_packet::setMacSource(unsigned long Source) {
   mac_source = Source;
   unsigned char *  cSource = (unsigned char *)&mac_source;
   packet[14] = cSource[5];
@@ -124,7 +109,8 @@ void ethernet_packet::set_mac_source(unsigned long Source) {
   packet[19] = cSource[0];
 }
 
-void ethernet_packet::set_mac_source(unsigned char * Source) {
+// sets the packets source MAC address from an unsigned char array (size: 2 Bytes Big endian)
+void ethernet_packet::setMacSource(unsigned char * Source) {
   memcpy(&packet[14], Source, 6);
   unsigned char *  cSource = (unsigned char *)&mac_source;
   cSource[7] = 0x0;
@@ -137,7 +123,8 @@ void ethernet_packet::set_mac_source(unsigned char * Source) {
   cSource[0] = packet[19];
 }
 
-unsigned char * ethernet_packet::get_payload() {
+// Gets the data payload (only) portion of the ethernet packet
+unsigned char * ethernet_packet::getPayload() {
   if (payload_size > 0) {
     unsigned char *newchar = new unsigned char[payload_size];
     memcpy(newchar, &packet[22], payload_size);
@@ -147,17 +134,20 @@ unsigned char * ethernet_packet::get_payload() {
   }
 }
 
-void ethernet_packet::set_payload(unsigned char * payload){
+// Sets the data payload (only) portion of the ethernet packet based on setPayloadSize()
+void ethernet_packet::setPayload(unsigned char * payload){
   if (payload_size > 0) {
     memcpy(&packet[22], payload, payload_size);
   }
 }
 
-unsigned short ethernet_packet::get_payload_size() {
+// Sets the data payload (only) size in bytes (Packet size will be Payload Size + 26)
+unsigned short ethernet_packet::getPayloadSize() {
   return payload_size;
 }
 
-void ethernet_packet::set_payload_size(unsigned short newsize) {
+// Gets the data payload (only) size in bytes (Packet size will be Payload Size + 26)
+void ethernet_packet::setPayloadSize(unsigned short newsize) {
   if (newsize > 1500) {
     payload_size = 1500;
   } else {
@@ -169,7 +159,8 @@ void ethernet_packet::set_payload_size(unsigned short newsize) {
   packet[21] = cpacket_size[0];
 }
 
-unsigned short ethernet_packet::get_fcr() {
+// Gets the Error Correct and Detection Value
+unsigned short ethernet_packet::getFcr() {
   unsigned short fcr = 0x0;
   unsigned char * cfcr = (unsigned char *) &fcr;
   cfcr[0] = packet[payload_size + 25];
@@ -177,17 +168,25 @@ unsigned short ethernet_packet::get_fcr() {
   return fcr;
 }
 
-unsigned char * ethernet_packet::get_packet() {
+// Calulate Error Correct and Detection Value
+void ethernet_packet::calcFcr() {
+  // not implementoed at this point
+}
+
+// Returns a new unsigned char arrray containing the complete packet
+unsigned char * ethernet_packet::getPacket() {
   unsigned char * newchar = new unsigned char[payload_size + 26];
   memcpy(newchar, packet, (unsigned int)(payload_size + 26));
   return newchar;
 }
 
-unsigned short ethernet_packet::get_packet_size() {
+// Get the size of the total packet in bytes (Payload Size + 26)
+unsigned short ethernet_packet::getPacketSize() {
   return payload_size + 26;
 }
 
-void ethernet_packet::set_packet_size(unsigned char * newsize) {
+// sets the packet size from unsigned char (size: 2 Bytes Big endian)
+void ethernet_packet::setPacketSize(unsigned char * newsize) {
   unsigned short size = 0;
   unsigned char * ssize = (unsigned char *) &size;
   ssize[1] = newsize[0];
@@ -200,38 +199,27 @@ void ethernet_packet::set_packet_size(unsigned char * newsize) {
   packet[21] = ssize[0];
 }
 
-unsigned short ethernet_packet::get_failed_size() {
-  return failed_size;
+// Creats a NEW ethernet packet object instance based on the current object instance
+void ethernet_packet::Print() {
+  cout << "Packet Destination MAC: " << hex << mac_destination
+       << "  Source MAC: " << hex<< mac_source
+       << "  Size : " << dec << getPacketSize()
+       << "  Time Stamp: " << TimeStamp << endl;
+  //  for (unsigned int c = 0; c < getPacketSize(); c++) {
+  //    cout << " 0x" << hex << (unsigned long)packet[c];
+  //  }
+  //  cout << endl;
 }
 
-void ethernet_packet::set_failed_size(unsigned short new_failed_size) {
-  if (new_failed_size < 1526) {
-    failed_size = 1526;
-  } else {
-    failed_size = new_failed_size;
-  }
-}
-
-void ethernet_packet::calc_fcr() {
-  // not implamentoed at this point
-}
-
-void ethernet_packet::print() {
-  cout << "Packet Data:";
-  for (unsigned int c = 0; c < get_packet_size(); c++) {
-    cout << " 0x" << hex << (unsigned long)packet[c];
-  }
-  cout << endl;
-}
-
-ethernet_packet * ethernet_packet::clone() {
-  ethernet_packet * newpacket = new ethernet_packet;
-  memcpy(newpacket->packet, packet, 1526);
-  newpacket->mac_destination = mac_destination;
-  newpacket->mac_source = mac_source;
-  newpacket->payload_size = payload_size;
-  newpacket->time_stamp = time_stamp;
-  calc_fcr();
+// sends information to standard out based on the currect object instance
+ethernet_packet * ethernet_packet::Clone() {
+  ethernet_packet * new_packet = new ethernet_packet;
+  memcpy(new_packet->packet, packet, 1526);
+  new_packet->mac_destination = mac_destination;
+  new_packet->mac_source = mac_source;
+  new_packet->payload_size = payload_size;
+  new_packet->TimeStamp = TimeStamp;
+  calcFcr();
   
-  return newpacket;
+  return new_packet;
 }
