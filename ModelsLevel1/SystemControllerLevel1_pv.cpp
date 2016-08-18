@@ -40,6 +40,8 @@ SystemControllerLevel1_pv::SystemControllerLevel1_pv(sc_module_name module_name)
   min_sample = USHRT_MAX;                 // sets the minimum stample valaue (for all samples to the highest value)
 
   SC_THREAD(ProcessThread);               // starts the main process thread
+  PortWidthFactor = getSystemCBaseModel()->get_port_width(Slave_idx) / 8;
+  PortClock = sc_time(1, SC_PS) * getSystemCBaseModel()->get_clock(Slave_idx) ;
 }      
 
 // Read callback for Slave port.
@@ -53,8 +55,9 @@ bool SystemControllerLevel1_pv::Slave_callback_read(mb_address_type address, uns
 // Returns true when successful.
 bool SystemControllerLevel1_pv::Slave_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
 
-  wait(size * 8 * clock);
-
+  unsigned int t = size * PortWidthFactor;
+  wait( t * PortClock );            // Wait here does not drop the packet until after it is fully recieved
+                                    // To drop the packet immediately if the fifo is full move the wait to before the put
   ethernet_packet * packet = new ethernet_packet(data, (unsigned short)size);  // create a new packet object for the received data
 
   // ignore packets to itself or source or destimation of Zero

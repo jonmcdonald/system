@@ -23,6 +23,7 @@ OBJS = $(SRCS:.cpp=.o)
 MBFILES = $(wildcard */*.mb)
 NUMMBFILES = $(words $(MBFILES))
 MBDIRS = $(shell ls */*.mb | sed 's:/[^/]*$$::' | sort -u)
+MBBLOCKSDIRS = $(shell ls -d */*.schematics | sed 's:/[^/]*schematics.*::' | sort -u)
 
 PRJDIRS = $(shell ls *.v2p | sed 's:.v2p::')
 
@@ -126,7 +127,7 @@ vista.ini:
 	@for p in $(PRJDIRS); do echo -n "$$p.v2p $$p " >> vista.ini; done
 	@echo "}" >> vista.ini
 	@echo -n "LibrariesMap {" >> vista.ini
-	@for d in $(MBDIRS); do echo -n "$$d $$d " >> vista.ini; done
+	@for d in $(MBDIRS) $(MBBLOCKSDIRS); do echo -n "$$d $$d " >> vista.ini; done
 	@echo "}" >> vista.ini
 	
 

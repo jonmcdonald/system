@@ -63,5 +63,7 @@ class SystemControllerLevel1_pv : public SystemControllerLevel1_pv_base {
   void ProcessThread();
   unsigned short max_sample;
   unsigned int min_sample;
+  unsigned int PortWidthFactor;
+  sc_time PortClock;
 };
 
