@@ -42,6 +42,8 @@ class NetworkSwitchLevel1_pv : public NetworkSwitchLevel1_pv_base {
   SC_HAS_PROCESS(NetworkSwitchLevel1_pv);
   NetworkSwitchLevel1_pv(sc_core::sc_module_name module_name);    
 
+  void end_of_simulation();
+
  protected:
   ////////////////////////////////////////
   // target ports read callbacks
@@ -112,5 +114,10 @@ class NetworkSwitchLevel1_pv : public NetworkSwitchLevel1_pv_base {
   void NodeThread4();
 
   std::map<unsigned long, unsigned long> MacAddressMap;
+
+  unsigned int PortWidthFactor[5];
+  sc_time PortClock[5];
+
+  unsigned int ppassed, pdropped;
 };
 

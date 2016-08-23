@@ -26,6 +26,8 @@
 
 #include "SensorNodeLevel1_pv.h"
 #include <iostream>
+#include <stdlib.h>
+#include <assert.h>
 
 using namespace sc_core;
 using namespace sc_dt;
@@ -33,12 +35,27 @@ using namespace std;
 
 //constructor
 SensorNodeLevel1_pv::SensorNodeLevel1_pv(sc_module_name module_name) 
-  : SensorNodeLevel1_pv_base(module_name) {
+  : SensorNodeLevel1_pv_base(module_name),
+    RetryPacketQ("RetryPacketQ")
+{
 
+  ReturnPacketQ.nb_bound(8);
+  RetryPacketQ.nb_bound(8);
   SampleFifo.nb_bound(SampleFifoSize); // set the size of the Sample Fifo
+  SentPacketQ.nb_bound(1000);
+  SentPacketQ.set_minimal_delay(AcknowledgeTimeoutInClocks * clock);
 
-  SC_THREAD(IntervalSampleThread);     // Start Sample Interval timer
-  SC_THREAD(MainThread);               // Start the Nodes main thread
+  SC_THREAD(IntervalSampleThread);     // Responsible for getting samples and sending to MainThread
+  SC_THREAD(MainThread);               // Responsible for getting samples, and retry requests and sending out packets
+  SC_THREAD(AckThread);                // Responsible for receiving packet ack and packet timeouts, sends retry request
+
+  RetryPacketRate = 0;
+  DropPacketRate = 0;
+  DropSampleRate = 0;
+  sentPackets = 0;
+  preceived = 0;
+  pdropped = 0;
+  pretried = 0;
 }      
 
 // Read callback for NetworkSlave port.
@@ -52,34 +69,26 @@ bool SensorNodeLevel1_pv::NetworkSlave_callback_read(mb_address_type address, un
 // Returns true when successful.
 bool SensorNodeLevel1_pv::NetworkSlave_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
 
+  mb::mb_token_ptr token = get_current_token();
+  assert (token->hasField("PacketID"));
+  unsigned int id = token->getFieldAsUInt("PacketID");
+
   // convert incoming data to a ethernet packet object
   ethernet_packet * packet = new ethernet_packet(data, (unsigned short)size);
   
   // check for valid MAC addresses ( > 0 )
-  if ((packet->getMacDestination() <= 0) || (packet->getMacSource() <= 0)) {
+  if (packet->getMacDestination() != MacAddress ) {
     delete packet; // delete unused packet object
-    return false;
+    return true;
   }
   // Check to see if the Source MAC is the SystemController and the payload size is 2
   if ((packet->getMacSource() == MacAddressSystemController) && (packet->getPayloadSize() == 2)) {
     // Indicate a Acknowledgement is being received
-    AcknowledgeMessageReceived = true;
+    ReturnPacketQ.put(packet);
 
-    if (mb::mb_token_ptr current_token = get_current_token()) { // Get the thread current token (Only one token per thread)
-      // Set the time stamp in current token the first time stampl to sample set to be sent 
-      sc_time start_time = current_token->getFieldAsDouble("StartTimeDouble") * sc_get_time_resolution();
-      sc_time delta_time = start_time - sc_time_stamp();
-      TimeOfFlightInNanoSeconds = delta_time.to_seconds() * 1.0e+9;
-    }
-
-    // Notify Acknowledgement to main thread as after a delta cycle (SC_ZERO_TIME)
-    AcknowledgeEvent.notify(SC_ZERO_TIME);
   }
   return true;
 } 
-
-
-
 
 unsigned SensorNodeLevel1_pv::NetworkSlave_callback_read_dbg(mb_address_type address, unsigned char* data, unsigned size) {
   return 0;
@@ -99,21 +108,22 @@ bool SensorNodeLevel1_pv::NetworkSlave_get_direct_memory_ptr(mb_address_type add
 
 // Interval Timer thread
 void SensorNodeLevel1_pv::IntervalSampleThread() {
+  mb_distribution *sampleDist = mb_CreateDistribution(SampleDistribution);
+
   unsigned int ntotal =  TotalNumberOfPackets * NumberOfSamplesPerPacket; // calculate the total number of samples
+
+  wait( ((rand() % (MaxRetryDelayInClocks-MinRetryDelayInClocks)) + MinRetryDelayInClocks) * clock);
+
   for (unsigned int ninterval = 0; ninterval < ntotal; ninterval++) { // loop for the total number of samples
     unsigned short sample = 0; // variable to hold the sample
 
-    wait(SampleIntervalInClocks * clock); // wait for intervel period
+    wait(sampleDist->getNextInt() * clock); // wait for intervel period
 
     // Saves the time for which the sample data was creation (using Tokens)
     // this allows the time stamp to be passed along with the data behide the sense
     // This is used for verification and analysis
-    mb::mb_token_ptr current_token = get_current_token(); // get the current token
-    current_token = new mb::mb_token();
-    if (current_token) { // if there was an existing token
-      current_token = new mb::mb_token();
-      set_current_token(current_token); // set a new token
-    }
+    mb::mb_token_ptr current_token = new mb::mb_token(); // create the current token
+    set_current_token(current_token);   // set a new token
     
     mb_sync();                                                      // upate the system time
     current_token->setField("StartTimeDouble", sc_time_stamp().to_double()); // add a new vlaue to the token for the time stamp
@@ -121,9 +131,11 @@ void SensorNodeLevel1_pv::IntervalSampleThread() {
     // read data from the sensor threw the sensor port
     Sensor_read(0, (unsigned char *) &sample, 2);                     // read two charactors and conver them to an unsigned short
     if (SampleFifo.nb_can_put()) {                                    // check to see if there is room in the fifo
+      DropSampleRate = 0.8 * DropSampleRate;
       SampleFifo.put(sample);                                         // add the sample to the fifo if space is availible
       //      SampleFifoCount = SampleFifo.used() + 1;                            // adding 1 because of SystemC update delay.
     } else {                                                          // if no room if fifo drop the sample
+      DropSampleRate = 0.8 * DropSampleRate + 20;
       SampleDroppedCount = SampleDroppedCount + 1;                    // count the dropped samples
     }
     
@@ -133,75 +145,137 @@ void SensorNodeLevel1_pv::IntervalSampleThread() {
 
 // Main thread which gather samples from the sample Fifo and sends them out into the network.
 void SensorNodeLevel1_pv::MainThread() {
-  // A array to hold a predefined number of samples to be sent
-  unsigned short * samples = new unsigned short [NumberOfSamplesPerPacket];
 
-  // A pointer to the sample array as Unsigned Char's
-  unsigned char * ucsample = (unsigned char *) samples;
+  mb::mb_token_ptr current_token;
+  unsigned int nsample = 0;
+  unsigned short sample;
+  unsigned int id;
+  ethernet_packet * packet;
+
+  // A array to hold a predefined number of samples to be sent
+  unsigned short * samples;
 
   // loop for sending a  predefined number od sample packets.
-  for (unsigned int npacket = 0; npacket < TotalNumberOfPackets; npacket++) {
+  for (;;) {
 
-    // New variable to hold the first sample time stamp as double.
-    double sample_start_time = -1;
+    if (RetryPacketQ.nb_get(id))   // We have a packet to send again from the retry queue
+    {
+      if (OutstandingPackets.count(id) == 1) {
+        pretried++;
+        RetryPacketRate = (0.8 * RetryPacketRate) + 20;
+        packet = OutstandingPackets[id]->packetptr;
+        SentPacketQ.nb_put(id);
+        NetworkMaster_write(MacAddressSystemController, (unsigned char *) packet, packet->getPacketSize());
+      }
+    }
+    else if (SampleFifo.nb_get(sample)) // We have a new sample
+    {
+      if (nsample == 0)  // The first sample of the set
+      {
+        samples = new unsigned short [NumberOfSamplesPerPacket];
+        current_token = get_current_token(); // Save the current token from the first sample, this has the initial StartTime for the set
+      }
+      samples[nsample++] = sample;               // add new sample from fifo to sample arraay
+      if (nsample == NumberOfSamplesPerPacket)   // The packet is full, ready to send
+      {
+        nsample = 0;
 
-    // loop gathering the predefined number od samples.
-    for (unsigned int nsample = 0; nsample < NumberOfSamplesPerPacket; nsample++) {
-      // vraiable to hold the next sample from the sample fifo
-      unsigned short sample;
+        // Ready to send the packet.  Check to see if we have room to save in the outstanding packet before creating it
+        if (OutstandingPackets.size() <= MaxOutstandingPackets)
+        {
+          set_current_token(current_token);   // Set the current token to the first token of the set
 
-      sample = SampleFifo.get();               // get sample from fifo
-      //      SampleFifoCount = SampleFifo.used() - 1; 
-      samples[nsample] = sample;               // add new sample from fifo to sample arraay
+          id = ++sentPackets;
+          current_token->setField("PacketID", id);               // Set ID used to identify returned packet
+          // Create a new packet for sending the samples
+          packet = new ethernet_packet();
+    
+          packet->setMacDestination(MacAddressSystemController); // set the Destination mac address    
+          packet->setMacSource(MacAddress);                      // Set the source mac address for the packet.
+          packet->setPayloadSize((unsigned short)(NumberOfSamplesPerPacket * sizeof(unsigned short))); // set packet data size
+          packet->setPayload((unsigned char *) samples);            // set data (unsigned char)
+          packet->calcFcr();                                     // Calculate error correction and detection and add to packet
 
-      if (sample_start_time < 0) { // If vlaue is less than zero it the first time sample from the block of samples
-        // Check for valid token
-        if (mb::mb_token_ptr current_token = get_current_token()) { // Get the thread current token (Only one token per thread)
-          if (current_token->hasField("StartTimeDouble")) { // verify it has a fied containing a time stamp field
-            sample_start_time = current_token->getFieldAsDouble("StartTimeDouble"); // save first time stamp for set of samples
-          }
+          OutstandingPackets[id] = new PacketTransType(current_token, packet, 1);  // Save the packet for the AckThread
+          SentPacketQ.put(id);                     // Used to synchronize with receive thread and limit outstanding packets
+
+          NetworkMaster_write(MacAddressSystemController, (unsigned char *) packet, packet->getPacketSize()); // send packet of samples
+        }
+        else // If not the packet is dropped because too many are already outstanding.
+        {
+          pdropped++;
+          DropPacketRate = 0.8 * DropPacketRate + 20;
+          delete samples;
         }
       }
     }
-    
-    if (mb::mb_token_ptr current_token = get_current_token()) { // get the current token
-      // Set the time stamp in current token the first time stamp to sample set to be sent 
-      current_token->setField("StartTimeDouble", sample_start_time);
+    else // Wait for something to do
+    {
+      wait (RetryPacketQ.ok_to_get() | SampleFifo.ok_to_get() );
     }
-
-    // Create a new packet for sending the samples
-    ethernet_packet * packet = new ethernet_packet();
-    
-    packet->setMacDestination(MacAddressSystemController); // set the Destination mac address    
-    packet->setMacSource(MacAddress);                      // Set the source mac address for the packet.
-    packet->setPayloadSize((unsigned short)(NumberOfSamplesPerPacket * sizeof(unsigned short))); // set packet data size
-    packet->setPayload(ucsample);                          // set data (unsigned char)
-    packet->calcFcr();                                     // Calculate error correction and detection and add to packet
-    mb_sync();                                             // sycronize system time before grabbing time stamp
-    packet->TimeStamp = sc_time_stamp();                  // set packet time stamp. used for debugging
-
-    unsigned char * ucpacket = packet->getPacket();       // get unsigned char array version of packet
-
-    // loops trying to send the newly created pack a predeturmend number of times
-    for (unsigned int ntry = 0; ntry < MaxNumberOfRetrys; ntry++) {  
-      NetworkMaster_write(MacAddressSystemController, ucpacket, packet->getPacketSize()); // send packet of samples
-      if (!AcknowledgeMessageReceived) { // if Acknowledgement not recieved, wait for a Acknowledgement even
-        wait(AcknowledgeTimeoutInClocks * clock, AcknowledgeEvent);  // waits for Acknowledgement event (see NetworkSlave_callback_write) or timeout
-      }
-      if (AcknowledgeMessageReceived) { // check to see if it was a timeout or a valid Acknowledgement event
-        NumberOfSamplesSent = NumberOfSamplesSent + 10; // keep track of the number of samples sent
-        NumberOfLostSamples = TotalNumberOfSamples - (NumberOfSamplesSent + 10); // keep track of the number of lost packets.
-        break; // exit loop if sent sample was Acknowledge
-      } else {
-        cout << sc_time_stamp() << " " << name() << "*******   TIME OUT   ********" << endl;
-      }
-    }
-    if (!AcknowledgeMessageReceived) { // if after a predefined number of tries give up and send next set of samples.
-      cout << sc_time_stamp() << " " << name() << " ERROR: Packet Lost *******************" << endl;
-    }
-    AcknowledgeMessageReceived = false; // reset Acknowledge flag
-    delete ucpacket; // delete unsigned char version of packet
-    delete packet; // delete packet
   }
 }
 
+// Thread to handle acknowledge of packets coming back
+void SensorNodeLevel1_pv::AckThread() {
+  
+  ethernet_packet *packet;
+  unsigned int id;
+  mb::mb_token_ptr token;
+  sc_time start_time, delta_time;
+
+    for (;;) {
+
+      if (ReturnPacketQ.nb_get(packet))  // A packet has come back
+      {
+        preceived++;
+        token = get_current_token();
+        assert (token->hasField("PacketID"));
+        id = token->getFieldAsUInt("PacketID");
+        if (OutstandingPackets.count(id) == 0)  // Packet returned beyond retry count or earlier try already returned
+        {
+          continue;
+        } 
+        else                                    // Packet received, log success and clear from OutstandingPackets
+        {
+          assert (token->hasField("StartTimeDouble"));
+          start_time = token->getFieldAsDouble("StartTimeDouble") * sc_get_time_resolution();
+          delta_time = start_time - sc_time_stamp();
+          TimeOfFlightInNanoSeconds = delta_time.to_seconds() * 1.0e+9;
+          DropPacketRate = 0.8 * DropPacketRate;
+          OutstandingPackets.erase(id);
+        }
+      }
+      else if (SentPacketQ.nb_get(id))   // Timeout for packet id has occured check that it has been received or resend
+      {
+        if (OutstandingPackets.count(id) == 0) // Packet was already cleared
+        {
+          continue;
+        }
+        else if (OutstandingPackets[id]->retryCount++ <= MaxNumberOfRetrys)  // Retry packet
+        {
+          if (not RetryPacketQ.nb_put(id))
+          {
+            pdropped++;
+            DropPacketRate = 0.8 * DropPacketRate + 20;
+            OutstandingPackets.erase(id);
+          }
+        } 
+        else  // Packet retry exceeded, log failure
+        {
+          pdropped++;
+          DropPacketRate = 0.8 * DropPacketRate + 20;
+          OutstandingPackets.erase(id);
+        }
+      } 
+      else   // Wait until we have something to do
+      {
+        wait (ReturnPacketQ.ok_to_get() | SentPacketQ.ok_to_get() );
+      }
+    }
+}
+
+void SensorNodeLevel1_pv::end_of_simulation()
+{
+  cout<<name()<<": "<<sentPackets<<" packets sent, "<<pretried<<" retried, "<<pdropped<<" dropped, "<<preceived<<" received\n";
+}

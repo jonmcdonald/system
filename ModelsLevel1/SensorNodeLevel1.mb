@@ -20,6 +20,8 @@ add_parameter "MacAddress" 0 uint64 {}
 add_parameter "MacAddressSystemController" 0 uint64 {}
 add_parameter "TotalNumberOfPackets" 100 uint32 {}
 add_parameter "SampleFifoSize" 10000000 uint32 {}
+add_parameter "SampleDistribution" {constant 200} string {}
+add_parameter "MaxOutstandingPackets" 8 uint32 {}
 
 # === auto parameters ===
 set_auto_parameter_default "clock" {10 ns} time {}
@@ -47,7 +49,12 @@ declare_variable NumberOfLostSamples -type uint64
 declare_variable SampleFifoCount -type int32
 declare_variable SampleDroppedCount -type uint64
 declare_variable TimeOfFlightInNanoSeconds -type int64
+declare_variable RetryPacketRate -type config::real80
+declare_variable DropPacketRate -type config::real80
+declare_variable DropSampleRate -type config::real80
 declare_communication_channel SampleFifo mb_fifo {} -template_parameters {unsigned short}
+declare_communication_channel SentPacketQ mb_fifo {} -template_parameters {unsigned int}
+declare_communication_channel ReturnPacketQ mb_fifo {} -template_parameters ethernet_packet*
 
 # === generate options ===
 set_generate_kind "pvt" ;# should be one of: model|pv|pvt

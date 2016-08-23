@@ -42,3 +42,5 @@ papoulis_project
 Test_Project
 ProjectLevel1
 *.ini
+visualhl.ini*
+aliases

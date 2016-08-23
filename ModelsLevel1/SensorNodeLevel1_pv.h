@@ -26,6 +26,7 @@
 #pragma once
 
 #include "SensorNodeLevel1_model.h"
+#include <map>
 
 using namespace tlm;
 
@@ -39,6 +40,8 @@ class SensorNodeLevel1_pv : public SensorNodeLevel1_pv_base {
   // To add parameters - use the Model Builder form (under PV->Parameters tab)
   SC_HAS_PROCESS(SensorNodeLevel1_pv);
   SensorNodeLevel1_pv(sc_core::sc_module_name module_name);    
+
+  void end_of_simulation();
 
  protected:
   ////////////////////////////////////////
@@ -64,7 +67,24 @@ class SensorNodeLevel1_pv : public SensorNodeLevel1_pv_base {
   sc_event IntervalSampleEvent;
 
   void MainThread();
+  void AckThread();
   sc_event AcknowledgeEvent;
   bool AcknowledgeMessageReceived;
+  unsigned int sentPackets;
+
+  typedef struct PacketTransType {
+    mb::mb_token_ptr tokenptr;
+    ethernet_packet* packetptr;
+    unsigned int retryCount;
+
+    PacketTransType(mb::mb_token_ptr tp, ethernet_packet *pp, unsigned int rc = 0) :
+      tokenptr(tp),
+      packetptr(pp),
+      retryCount(rc) {}
+  } PacketTransType;
+
+  mb::mb_fifo<unsigned int> RetryPacketQ;
+  map<unsigned int, PacketTransType*> OutstandingPackets;
+  unsigned int preceived, pdropped, pretried;
 };
 

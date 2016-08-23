@@ -40,6 +40,8 @@ class SystemControllerLevel1_pv : public SystemControllerLevel1_pv_base {
   SC_HAS_PROCESS(SystemControllerLevel1_pv);
   SystemControllerLevel1_pv(sc_core::sc_module_name module_name);    
 
+  void end_of_simulation();
+
  protected:
   ////////////////////////////////////////
   // target ports read callbacks
@@ -65,5 +67,8 @@ class SystemControllerLevel1_pv : public SystemControllerLevel1_pv_base {
   unsigned int min_sample;
   unsigned int PortWidthFactor;
   sc_time PortClock;
+
+  saAttribute<double> Utilization;
+  unsigned int pprocessed, pdropped;
 };
 

@@ -33,15 +33,20 @@ using namespace std;
 
 //constructor
 SystemControllerLevel1_pv::SystemControllerLevel1_pv(sc_module_name module_name) 
-  : SystemControllerLevel1_pv_base(module_name) {
+  : SystemControllerLevel1_pv_base(module_name),
+  Utilization("Utilization", 0)
+{
   ProcessFifo.set_minimal_delay(ProcessDelayInClocks *clock); // sets the processing delay for the packet
   ProcessFifo.nb_bound(ProcessFifoSize);  // sets the size of the System Controller fifo
   max_sample = 0;                         // sets the maximum stample valaue (for all samples to the lowest value)
   min_sample = USHRT_MAX;                 // sets the minimum stample valaue (for all samples to the highest value)
 
   SC_THREAD(ProcessThread);               // starts the main process thread
-  PortWidthFactor = getSystemCBaseModel()->get_port_width(Slave_idx) / 8;
+
+  PortWidthFactor = getSystemCBaseModel()->get_port_width(Slave_idx) * 8;          // Used to calculate timing on port
   PortClock = sc_time(1, SC_PS) * getSystemCBaseModel()->get_clock(Slave_idx) ;
+
+  Utilization.setSampling(sc_time(50, SC_US), saAttribute_Sample_TWAvg);   // Record time weighted average utilization in 50 us window
 }      
 
 // Read callback for Slave port.
@@ -64,10 +69,10 @@ bool SystemControllerLevel1_pv::Slave_callback_write(mb_address_type address, un
   if ((packet->getMacSource() != MacAddress) && (packet->getMacSource() > 0 ) && (packet->getMacDestination() > 0)) {
     if (ProcessFifo.nb_can_put()) { // check to see if the fifo has space for the new data
       ProcessFifo.put(packet);      // if there is space add it to the fifo
+      pprocessed++;
       return true;                  // return true and exit for callback
     } else {
-      cout << sc_time_stamp() << " System Controller Fifo Full; Packet Dropped" << endl;
-      packet->Print();
+      pdropped++;
     }
   }
     
@@ -96,13 +101,15 @@ bool SystemControllerLevel1_pv::Slave_get_direct_memory_ptr(mb_address_type addr
 
 // Main processing thread
 void SystemControllerLevel1_pv::ProcessThread() {
+  unsigned int id;
 
   // loop for every waiting for packets
   while (true) {
+    if (ProcessFifo.used() == 0) Utilization = 0.0;
     ethernet_packet *  packet = ProcessFifo.get();               // get next packet form fifo
+    Utilization = 100.0;
 
     unsigned long mac_source = packet->getMacSource();           // get source mac addres (used as the Acknowledgement destimation address)
-
     unsigned char * ucsamples = packet->getPayload();            // get packet sample data as unsigned char
     unsigned short * samples = (unsigned short *) ucsamples;     // point to samples as an array of unsigned short integers (16-bit)
 
@@ -134,4 +141,8 @@ void SystemControllerLevel1_pv::ProcessThread() {
       delete ucpacket;                                                                     // delete unsigned char array version of packet
     }
   }
+}
+
+void SystemControllerLevel1_pv::end_of_simulation() {
+  cout <<name()<<": "<<pprocessed<<" packets processed, "<<pdropped<<" dropped\n";
 }

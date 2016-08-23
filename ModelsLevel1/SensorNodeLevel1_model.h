@@ -23,7 +23,7 @@
 //* The SensorNodeLevel1_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
+//* Generated on: Aug. 20, 2016 03:42:55 PM, (user: jon)
 //*>
 
 
@@ -114,6 +114,8 @@ class SensorNodeLevel1_pv_base_parameters {
   unsigned long long MacAddressSystemController;
   unsigned int TotalNumberOfPackets;
   unsigned int SampleFifoSize;
+  const char* SampleDistribution;
+  unsigned int MaxOutstandingPackets;
 };
 
 class SensorNodeLevel1_pv_base : public SensorNodeLevel1_pv_base_mb_compatibility,
@@ -2469,7 +2471,12 @@ class SensorNodeLevel1_pv_base : public SensorNodeLevel1_pv_base_mb_compatibilit
   mb::mb_variable<int> SampleFifoCount;
   mb::mb_variable<sc_dt::uint64> SampleDroppedCount;
   mb::mb_variable<sc_dt::int64> TimeOfFlightInNanoSeconds;
+  mb::mb_variable<config::real80> RetryPacketRate;
+  mb::mb_variable<config::real80> DropPacketRate;
+  mb::mb_variable<config::real80> DropSampleRate;
   mb::mb_fifo<unsigned short> SampleFifo;
+  mb::mb_fifo<unsigned int> SentPacketQ;
+  mb::mb_fifo<ethernet_packet*> ReturnPacketQ;
 };
 
 
@@ -2500,7 +2507,7 @@ class SensorNodeLevel1_pv_base : public SensorNodeLevel1_pv_base_mb_compatibilit
 //* The SensorNodeLevel1_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
+//* Generated on: Aug. 20, 2016 03:42:55 PM, (user: jon)
 //*>
 
 
@@ -2621,20 +2628,25 @@ protected:
   unsigned long long MacAddressSystemController;
   unsigned int TotalNumberOfPackets;
   unsigned int SampleFifoSize;
+  const char* SampleDistribution;
+  unsigned int MaxOutstandingPackets;
 
 protected:
   long m_simulation;
 
  
 public:
-  enum variable_enum {TotalNumberOfSamples_idx, NumberOfSamplesSent_idx, NumberOfLostSamples_idx, SampleFifoCount_idx, SampleDroppedCount_idx, TimeOfFlightInNanoSeconds_idx };
+  enum variable_enum {TotalNumberOfSamples_idx, NumberOfSamplesSent_idx, NumberOfLostSamples_idx, SampleFifoCount_idx, SampleDroppedCount_idx, TimeOfFlightInNanoSeconds_idx, RetryPacketRate_idx, DropPacketRate_idx, DropSampleRate_idx };
 protected:
   mb::mb_t_variable<sc_dt::uint64> TotalNumberOfSamples;
   mb::mb_t_variable<sc_dt::uint64> NumberOfSamplesSent;
   mb::mb_t_variable<sc_dt::uint64> NumberOfLostSamples;
   mb::mb_t_variable<int> SampleFifoCount;
   mb::mb_t_variable<sc_dt::uint64> SampleDroppedCount;
-  mb::mb_t_variable<sc_dt::int64> TimeOfFlightInNanoSeconds; 
+  mb::mb_t_variable<sc_dt::int64> TimeOfFlightInNanoSeconds;
+  mb::mb_t_variable<config::real80> RetryPacketRate;
+  mb::mb_t_variable<config::real80> DropPacketRate;
+  mb::mb_t_variable<config::real80> DropSampleRate; 
   
   
   
@@ -2724,7 +2736,7 @@ protected:
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
+//* Generated on: Aug. 20, 2016 03:42:55 PM, (user: jon)
 //*>
 
 
@@ -2768,6 +2780,8 @@ public:
     unsigned long long MacAddressSystemController;
     unsigned int TotalNumberOfPackets;
     unsigned int SampleFifoSize;
+    const char* SampleDistribution;
+    unsigned int MaxOutstandingPackets;
     clock = ::mb::sysc::sdInitParameter<sc_core::sc_time>("clock", sc_core::sc_time(10, sc_core::SC_NS), hier_name);
     generic_clock = ::mb::sysc::sdInitParameter<sc_core::sc_time>("generic_clock", clock, hier_name);
     nominal_voltage = ::mb::sysc::sdInitParameter<double>("nominal_voltage", 1, hier_name);
@@ -2787,10 +2801,12 @@ public:
     MacAddressSystemController = ::mb::sysc::sdInitParameter<unsigned long long>("MacAddressSystemController", 0, hier_name);
     TotalNumberOfPackets = ::mb::sysc::sdInitParameter<unsigned int>("TotalNumberOfPackets", 100, hier_name);
     SampleFifoSize = ::mb::sysc::sdInitParameter<unsigned int>("SampleFifoSize", 10000000, hier_name);
+    SampleDistribution = ::mb::sysc::sdInitParameter<const char*>("SampleDistribution", "constant 200", hier_name);
+    MaxOutstandingPackets = ::mb::sysc::sdInitParameter<unsigned int>("MaxOutstandingPackets", 8, hier_name);
     ::mb::sysc::sdPropagateParameters();
   }
 
-  SensorNodeLevel1_pvt_param_defaults(const char* hier_name, sc_core::sc_time clock_init, sc_core::sc_time generic_clock_init, double nominal_voltage_init, bool mb_debug_init, bool call_to_default_if_init, bool verbose_parameters_init, bool dmi_enabled_init, const char* warning_level_init, unsigned int NetworkSlave_pipeline_length_init, unsigned int SampleIntervalInClocks_init, unsigned int NumberOfSamplesPerPacket_init, unsigned int MinRetryDelayInClocks_init, unsigned int MaxRetryDelayInClocks_init, unsigned int MaxNumberOfRetrys_init, unsigned int AcknowledgeTimeoutInClocks_init, unsigned long long MacAddress_init, unsigned long long MacAddressSystemController_init, unsigned int TotalNumberOfPackets_init, unsigned int SampleFifoSize_init) {
+  SensorNodeLevel1_pvt_param_defaults(const char* hier_name, sc_core::sc_time clock_init, sc_core::sc_time generic_clock_init, double nominal_voltage_init, bool mb_debug_init, bool call_to_default_if_init, bool verbose_parameters_init, bool dmi_enabled_init, const char* warning_level_init, unsigned int NetworkSlave_pipeline_length_init, unsigned int SampleIntervalInClocks_init, unsigned int NumberOfSamplesPerPacket_init, unsigned int MinRetryDelayInClocks_init, unsigned int MaxRetryDelayInClocks_init, unsigned int MaxNumberOfRetrys_init, unsigned int AcknowledgeTimeoutInClocks_init, unsigned long long MacAddress_init, unsigned long long MacAddressSystemController_init, unsigned int TotalNumberOfPackets_init, unsigned int SampleFifoSize_init, const char* SampleDistribution_init, unsigned int MaxOutstandingPackets_init) {
 
     sc_core::sc_time clock;
     sc_core::sc_time generic_clock;
@@ -2811,6 +2827,8 @@ public:
     unsigned long long MacAddressSystemController;
     unsigned int TotalNumberOfPackets;
     unsigned int SampleFifoSize;
+    const char* SampleDistribution;
+    unsigned int MaxOutstandingPackets;
     clock = ::mb::sysc::sdInitParameter<sc_core::sc_time>("clock", clock_init, hier_name);
     generic_clock = ::mb::sysc::sdInitParameter<sc_core::sc_time>("generic_clock", generic_clock_init, hier_name);
     nominal_voltage = ::mb::sysc::sdInitParameter<double>("nominal_voltage", nominal_voltage_init, hier_name);
@@ -2830,6 +2848,8 @@ public:
     MacAddressSystemController = ::mb::sysc::sdInitParameter<unsigned long long>("MacAddressSystemController", MacAddressSystemController_init, hier_name);
     TotalNumberOfPackets = ::mb::sysc::sdInitParameter<unsigned int>("TotalNumberOfPackets", TotalNumberOfPackets_init, hier_name);
     SampleFifoSize = ::mb::sysc::sdInitParameter<unsigned int>("SampleFifoSize", SampleFifoSize_init, hier_name);
+    SampleDistribution = ::mb::sysc::sdInitParameter<const char*>("SampleDistribution", SampleDistribution_init, hier_name);
+    MaxOutstandingPackets = ::mb::sysc::sdInitParameter<unsigned int>("MaxOutstandingPackets", MaxOutstandingPackets_init, hier_name);
 
     ::mb::sysc::sdPropagateParameters();
     }
@@ -2855,6 +2875,8 @@ public:
     unsigned long long MacAddressSystemController;
     unsigned int TotalNumberOfPackets;
     unsigned int SampleFifoSize;
+    const char* SampleDistribution;
+    unsigned int MaxOutstandingPackets;
     for (unsigned i =0; i<change_parameters.size(); i++){
       ::mb::sysc::sdInitParameter<unsigned int>(change_parameters[i].first, change_parameters[i].second, hier_name);
     }
@@ -2877,7 +2899,9 @@ public:
     MacAddress = ::mb::sysc::sdInitParameter<unsigned long long>("MacAddress", 0, hier_name);
     MacAddressSystemController = ::mb::sysc::sdInitParameter<unsigned long long>("MacAddressSystemController", 0, hier_name);
     TotalNumberOfPackets = ::mb::sysc::sdInitParameter<unsigned int>("TotalNumberOfPackets", 100, hier_name);
-    SampleFifoSize = ::mb::sysc::sdInitParameter<unsigned int>("SampleFifoSize", 10000000, hier_name);  
+    SampleFifoSize = ::mb::sysc::sdInitParameter<unsigned int>("SampleFifoSize", 10000000, hier_name);
+    SampleDistribution = ::mb::sysc::sdInitParameter<const char*>("SampleDistribution", "constant 200", hier_name);
+    MaxOutstandingPackets = ::mb::sysc::sdInitParameter<unsigned int>("MaxOutstandingPackets", 8, hier_name);  
 
     ::mb::sysc::sdPropagateParameters();
   }
@@ -2896,7 +2920,7 @@ class SensorNodeLevel1_pvt : public esl::sc_sim::PVTBaseModel,
  public: 
   // Constructor
   SensorNodeLevel1_pvt(sc_core::sc_module_name module_name); 
-  SensorNodeLevel1_pvt(sc_core::sc_module_name module_name, sc_core::sc_time clock_init, sc_core::sc_time generic_clock_init, double nominal_voltage_init, bool mb_debug_init, bool call_to_default_if_init, bool verbose_parameters_init, bool dmi_enabled_init, const char* warning_level_init, unsigned int NetworkSlave_pipeline_length_init, unsigned int SampleIntervalInClocks_init, unsigned int NumberOfSamplesPerPacket_init, unsigned int MinRetryDelayInClocks_init, unsigned int MaxRetryDelayInClocks_init, unsigned int MaxNumberOfRetrys_init, unsigned int AcknowledgeTimeoutInClocks_init, unsigned long long MacAddress_init, unsigned long long MacAddressSystemController_init, unsigned int TotalNumberOfPackets_init, unsigned int SampleFifoSize_init); 
+  SensorNodeLevel1_pvt(sc_core::sc_module_name module_name, sc_core::sc_time clock_init, sc_core::sc_time generic_clock_init, double nominal_voltage_init, bool mb_debug_init, bool call_to_default_if_init, bool verbose_parameters_init, bool dmi_enabled_init, const char* warning_level_init, unsigned int NetworkSlave_pipeline_length_init, unsigned int SampleIntervalInClocks_init, unsigned int NumberOfSamplesPerPacket_init, unsigned int MinRetryDelayInClocks_init, unsigned int MaxRetryDelayInClocks_init, unsigned int MaxNumberOfRetrys_init, unsigned int AcknowledgeTimeoutInClocks_init, unsigned long long MacAddress_init, unsigned long long MacAddressSystemController_init, unsigned int TotalNumberOfPackets_init, unsigned int SampleFifoSize_init, const char* SampleDistribution_init, unsigned int MaxOutstandingPackets_init); 
   SensorNodeLevel1_pvt(sc_core::sc_module_name module_name, std::vector<std::pair<char*, unsigned int> > &change_parameters);
   ~SensorNodeLevel1_pvt(); 
 

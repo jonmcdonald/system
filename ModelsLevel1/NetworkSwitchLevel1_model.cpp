@@ -23,7 +23,7 @@
 //* The NetworkSwitchLevel1_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 16, 2016 01:38:01 AM, (user: kenm)
+//* Generated on: Aug. 19, 2016 12:35:05 PM, (user: jon)
 //*>
 
 
@@ -56,6 +56,7 @@ NetworkSwitchLevel1_pv_base::NetworkSwitchLevel1_pv_base(sc_module_name& module_
   VISTA_MB_PV_INIT_MEMBER(NodeSlave2),
   VISTA_MB_PV_INIT_MEMBER(NodeSlave3),
   VISTA_MB_PV_INIT_MEMBER(NodeSlave4),
+  VISTA_MB_PV_INIT_MEMBER(DropRate),
   SystemControllerFifo(MaxFifoSize),
   NodeFifo0(MaxFifoSize),
   NodeFifo1(MaxFifoSize),
@@ -226,7 +227,7 @@ void NetworkSwitchLevel1_pv_base_parameters::print_parameters()
 //* The NetworkSwitchLevel1_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 16, 2016 01:38:01 AM, (user: kenm)
+//* Generated on: Aug. 19, 2016 12:35:05 PM, (user: jon)
 //*>
 
 
@@ -455,7 +456,8 @@ NetworkSwitchLevel1_t_base::NetworkSwitchLevel1_t_base(sc_module_name& module_na
   SD_INITIALIZE_PARAMETER(WireDelay, sc_core::sc_time(10, sc_core::SC_NS)),
   SD_INITIALIZE_PARAMETER(MaxFifoSize, 10000),
   SD_INITIALIZE_PARAMETER(MaxMapTableSize, 10000),
-  m_simulation(simulation)
+  m_simulation(simulation),
+  DropRate("DropRate", this)
 {
   bool separate_read_channel = false;  
   bool separate_write_channel = false;
@@ -1072,7 +1074,7 @@ bool NetworkSwitchLevel1_t_base::portHasRegisters(unsigned portIndex) {
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 16, 2016 01:38:01 AM, (user: kenm)
+//* Generated on: Aug. 19, 2016 12:35:05 PM, (user: jon)
 //*>
 
 #include "NetworkSwitchLevel1_model.h"

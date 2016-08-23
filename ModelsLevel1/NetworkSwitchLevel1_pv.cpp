@@ -47,6 +47,18 @@ NetworkSwitchLevel1_pv::NetworkSwitchLevel1_pv(sc_module_name module_name)
   SC_THREAD(NodeThread2); // Start Node2 Fifo which forwards packets from NodeFifo4 to NodeMaster2 port
   SC_THREAD(NodeThread3); // Start Node3 Fifo which forwards packets from NodeFifo4 to NodeMaster3 port
   SC_THREAD(NodeThread4); // Start Node4 Fifo which forwards packets from NodeFifo4 to NodeMaster4 port
+
+  PortWidthFactor[0] = getSystemCBaseModel()->get_port_width(NodeSlave0_idx) * 8;
+  PortWidthFactor[1] = getSystemCBaseModel()->get_port_width(NodeSlave1_idx) * 8;
+  PortWidthFactor[2] = getSystemCBaseModel()->get_port_width(NodeSlave2_idx) * 8;
+  PortWidthFactor[3] = getSystemCBaseModel()->get_port_width(NodeSlave3_idx) * 8;
+  PortWidthFactor[4] = getSystemCBaseModel()->get_port_width(NodeSlave4_idx) * 8;
+  PortClock[0] = sc_time(1, SC_PS) * getSystemCBaseModel()->get_clock(NodeSlave0_idx) ;
+  PortClock[1] = sc_time(1, SC_PS) * getSystemCBaseModel()->get_clock(NodeSlave1_idx) ;
+  PortClock[2] = sc_time(1, SC_PS) * getSystemCBaseModel()->get_clock(NodeSlave2_idx) ;
+  PortClock[3] = sc_time(1, SC_PS) * getSystemCBaseModel()->get_clock(NodeSlave3_idx) ;
+  PortClock[4] = sc_time(1, SC_PS) * getSystemCBaseModel()->get_clock(NodeSlave4_idx) ;
+  DropRate = 0.0;
 }      
 
 // Read callback for NodeSlave0 port.
@@ -91,30 +103,40 @@ bool NetworkSwitchLevel1_pv::NodeSlave4_callback_read(mb_address_type address, u
 // Write callback for NodeSlave0 port.
 // Returns true when successful.
 bool NetworkSwitchLevel1_pv::NodeSlave0_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
+  unsigned int t = size * PortWidthFactor[0];
+  wait( t * PortClock[0] );
   return send_packet(NodeMaster0_idx, address, data, size);
 } 
 
 // Write callback for NodeSlave1 port.
 // Returns true when successful.
 bool NetworkSwitchLevel1_pv::NodeSlave1_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
+  unsigned int t = size * PortWidthFactor[1];
+  wait( t * PortClock[1] );
   return send_packet(NodeMaster1_idx, address, data, size);
 } 
 
 // Write callback for NodeSlave2 port.
 // Returns true when successful.
 bool NetworkSwitchLevel1_pv::NodeSlave2_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
+  unsigned int t = size * PortWidthFactor[2];
+  wait( t * PortClock[2] );
   return send_packet(NodeMaster2_idx, address, data, size);
 } 
 
 // Write callback for NodeSlave3 port.
 // Returns true when successful.
 bool NetworkSwitchLevel1_pv::NodeSlave3_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
+  unsigned int t = size * PortWidthFactor[3];
+  wait( t * PortClock[3] );
   return send_packet(NodeMaster3_idx, address, data, size); 
 } 
 
 // Write callback for NodeSlave4 port.
 // Returns true when successful.
 bool NetworkSwitchLevel1_pv::NodeSlave4_callback_write(mb_address_type address, unsigned char* data, unsigned size) {
+  unsigned int t = size * PortWidthFactor[4];
+  wait( t * PortClock[4] );
   return send_packet(NodeMaster4_idx, address, data, size);
 } 
 
@@ -251,41 +273,46 @@ bool NetworkSwitchLevel1_pv::NodeFifoPut(unsigned int port_index, ethernet_packe
   if (port_index == NodeMaster0_idx) { // If Mode  Master
     if (NodeFifo0.nb_can_put()) {      // Check to see in there is room in the fifo
       NodeFifo0.put(packet);           // put the packet into the Node 0 Fifo
+      DropRate = DropRate * 0.8; ppassed++;
     } else {
       delete packet;                   // throw out the packet if there isn't space
-      cout << sc_time_stamp() << "Node 0 Fifo full packet dropped" << endl;
+      DropRate = (DropRate * 0.8) + 50.0; pdropped++;
       return false;
     }
   } else if (port_index == NodeMaster1_idx) { // If Mode 1 Master
     if (NodeFifo1.nb_can_put()) {      // Check to see in there is room in the fifo
       NodeFifo1.put(packet);           // put the packet into the Node 1 Fifo
+      DropRate = DropRate * 0.8; ppassed++;
     } else {
       delete packet;                   // throw out the packet if there isn't space
-      cout << sc_time_stamp() << "Node 1 Fifo full packet dropped" << endl;
+      DropRate = (DropRate * 0.8) + 50.0; pdropped++;
       return false;
     }
   } else if (port_index == NodeMaster2_idx) { // If Mode 2 Master
     if (NodeFifo2.nb_can_put()) {      // Check to see in there is room in the fifo
       NodeFifo2.put(packet);           // put the packet into the Node 2 Fifo
+      DropRate = DropRate * 0.8; ppassed++;
     } else {
       delete packet;                   // throw out the packet if there isn't space
-      cout << sc_time_stamp() << "Node 2 Fifo full packet dropped" << endl;
+      DropRate = (DropRate * 0.8) + 50.0; pdropped++;
       return false;
     }
   } else if (port_index == NodeMaster3_idx) { // If Mode 3 Master
     if (NodeFifo3.nb_can_put()) {      // Check to see in there is room in the fifo
       NodeFifo3.put(packet);           // put the packet into the Node 3 Fifo
+      DropRate = DropRate * 0.8; ppassed++;
     } else {
       delete packet;                   // throw out the packet if there isn't space
-      cout << sc_time_stamp() << "Node 3 Fifo full packet dropped" << endl;
+      DropRate = (DropRate * 0.8) + 50.0; pdropped++;
       return false;
     }
   } else if (port_index == NodeMaster4_idx) { // If Mode 0 Master
     if (NodeFifo4.nb_can_put()) {      // Check to see in there is room in the fifo
       NodeFifo4.put(packet);           // put the packet into the Node 3 Fifo
+      DropRate = DropRate * 0.8; ppassed++;
     } else {
       delete packet;                   // throw out the packet if there isn't space
-      cout << sc_time_stamp() << "Node 4 Fifo full packet dropped" << endl;
+      DropRate = (DropRate * 0.8) + 50.0; pdropped++;
       return false;
     }
   } else {
@@ -378,4 +405,8 @@ void NetworkSwitchLevel1_pv::NodeThread4() {
     // delete the send packet object
     delete packet;
   }
+}
+
+void NetworkSwitchLevel1_pv::end_of_simulation() {
+  cout <<name()<<": "<<ppassed<<" packets passed, "<<pdropped<<" dropped\n";
 }

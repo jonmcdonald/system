@@ -23,7 +23,7 @@
 //* The NetworkSwitchLevel1_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 16, 2016 01:38:01 AM, (user: kenm)
+//* Generated on: Aug. 19, 2016 12:35:05 PM, (user: jon)
 //*>
 
 
@@ -6236,6 +6236,7 @@ class NetworkSwitchLevel1_pv_base : public NetworkSwitchLevel1_pv_base_mb_compat
   
 
  protected:
+  mb::mb_variable<config::real80> DropRate;
   mb::mb_fifo<ethernet_packet *> SystemControllerFifo;
   mb::mb_fifo<ethernet_packet *> NodeFifo0;
   mb::mb_fifo<ethernet_packet *> NodeFifo1;
@@ -6272,7 +6273,7 @@ class NetworkSwitchLevel1_pv_base : public NetworkSwitchLevel1_pv_base_mb_compat
 //* The NetworkSwitchLevel1_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 16, 2016 01:38:01 AM, (user: kenm)
+//* Generated on: Aug. 19, 2016 12:35:05 PM, (user: jon)
 //*>
 
 
@@ -6395,6 +6396,10 @@ protected:
   long m_simulation;
 
  
+public:
+  enum variable_enum {DropRate_idx };
+protected:
+  mb::mb_t_variable<config::real80> DropRate; 
   
   
   
@@ -6484,7 +6489,7 @@ protected:
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 16, 2016 01:38:01 AM, (user: kenm)
+//* Generated on: Aug. 19, 2016 12:35:05 PM, (user: jon)
 //*>
 
 

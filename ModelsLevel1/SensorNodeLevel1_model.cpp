@@ -23,7 +23,7 @@
 //* The SensorNodeLevel1_pv will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
+//* Generated on: Aug. 20, 2016 12:48:18 PM, (user: jon)
 //*>
 
 
@@ -54,7 +54,10 @@ SensorNodeLevel1_pv_base::SensorNodeLevel1_pv_base(sc_module_name& module_name) 
   VISTA_MB_PV_INIT_MEMBER(NumberOfLostSamples),
   VISTA_MB_PV_INIT_MEMBER(SampleFifoCount),
   VISTA_MB_PV_INIT_MEMBER(SampleDroppedCount),
-  VISTA_MB_PV_INIT_MEMBER(TimeOfFlightInNanoSeconds) {
+  VISTA_MB_PV_INIT_MEMBER(TimeOfFlightInNanoSeconds),
+  VISTA_MB_PV_INIT_MEMBER(RetryPacketRate),
+  VISTA_MB_PV_INIT_MEMBER(DropPacketRate),
+  VISTA_MB_PV_INIT_MEMBER(DropSampleRate) {
   
 
   // Sensor - not a vector port
@@ -122,7 +125,9 @@ SensorNodeLevel1_pv_base_parameters::SensorNodeLevel1_pv_base_parameters(sc_obje
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, MacAddress, 0),
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, MacAddressSystemController, 0),
   SD_INITIALIZE_PARAMETER_EXTERNALLY(object, TotalNumberOfPackets, 100),
-  SD_INITIALIZE_PARAMETER_EXTERNALLY(object, SampleFifoSize, 10000000)
+  SD_INITIALIZE_PARAMETER_EXTERNALLY(object, SampleFifoSize, 10000000),
+  SD_INITIALIZE_PARAMETER_EXTERNALLY(object, SampleDistribution, "constant 200"),
+  SD_INITIALIZE_PARAMETER_EXTERNALLY(object, MaxOutstandingPackets, 8)
 {
   if(verbose_parameters) print_parameters();
 }
@@ -157,6 +162,8 @@ void SensorNodeLevel1_pv_base_parameters::print_parameters()
   std::cout << "\tMacAddressSystemController = " << MacAddressSystemController << "\n";
   std::cout << "\tTotalNumberOfPackets = " << TotalNumberOfPackets << "\n";
   std::cout << "\tSampleFifoSize = " << SampleFifoSize << "\n";
+  std::cout << "\tSampleDistribution = " << SampleDistribution << "\n";
+  std::cout << "\tMaxOutstandingPackets = " << MaxOutstandingPackets << "\n";
   std::cout.unsetf(ios::showbase);
   std::cout.setf(ios::dec, ios::basefield);
   std::cout << std::endl;
@@ -190,7 +197,7 @@ void SensorNodeLevel1_pv_base_parameters::print_parameters()
 //* The SensorNodeLevel1_t will be derived from this class.
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
+//* Generated on: Aug. 20, 2016 12:48:18 PM, (user: jon)
 //*>
 
 
@@ -394,13 +401,18 @@ SensorNodeLevel1_t_base::SensorNodeLevel1_t_base(sc_module_name& module_name, lo
   SD_INITIALIZE_PARAMETER(MacAddressSystemController, 0),
   SD_INITIALIZE_PARAMETER(TotalNumberOfPackets, 100),
   SD_INITIALIZE_PARAMETER(SampleFifoSize, 10000000),
+  SD_INITIALIZE_PARAMETER(SampleDistribution, "constant 200"),
+  SD_INITIALIZE_PARAMETER(MaxOutstandingPackets, 8),
   m_simulation(simulation),
   TotalNumberOfSamples("TotalNumberOfSamples", this),
   NumberOfSamplesSent("NumberOfSamplesSent", this),
   NumberOfLostSamples("NumberOfLostSamples", this),
   SampleFifoCount("SampleFifoCount", this),
   SampleDroppedCount("SampleDroppedCount", this),
-  TimeOfFlightInNanoSeconds("TimeOfFlightInNanoSeconds", this)
+  TimeOfFlightInNanoSeconds("TimeOfFlightInNanoSeconds", this),
+  RetryPacketRate("RetryPacketRate", this),
+  DropPacketRate("DropPacketRate", this),
+  DropSampleRate("DropSampleRate", this)
 {
   bool separate_read_channel = false;  
   bool separate_write_channel = false;
@@ -551,6 +563,8 @@ SensorNodeLevel1_t_base::SensorNodeLevel1_t_base(sc_module_name& module_name, lo
   registerParameter("MacAddressSystemController", "unsigned long long", sdGetParameterAsConstString("MacAddressSystemController"));
   registerParameter("TotalNumberOfPackets", "unsigned int", sdGetParameterAsConstString("TotalNumberOfPackets"));
   registerParameter("SampleFifoSize", "unsigned int", sdGetParameterAsConstString("SampleFifoSize"));
+  registerParameter("SampleDistribution", "const char*", sdGetParameterAsConstString("SampleDistribution"));
+  registerParameter("MaxOutstandingPackets", "unsigned int", sdGetParameterAsConstString("MaxOutstandingPackets"));
   set_sync_all(0); 
   set_sync_all(0);
   
@@ -685,7 +699,7 @@ bool SensorNodeLevel1_t_base::portHasRegisters(unsigned portIndex) {
 //* A synchronization point is reached whenever there is a wait statement on a testbench thread. 
 //*
 //* Model Builder version: 4.2.1
-//* Generated on: Aug. 17, 2016 01:56:50 AM, (user: kenm)
+//* Generated on: Aug. 20, 2016 12:48:18 PM, (user: jon)
 //*>
 
 #include "SensorNodeLevel1_model.h"
@@ -729,9 +743,9 @@ SensorNodeLevel1_pvt::SensorNodeLevel1_pvt(sc_module_name module_name)
 }  
 
 
-SensorNodeLevel1_pvt::SensorNodeLevel1_pvt(sc_module_name module_name, sc_core::sc_time clock_init, sc_core::sc_time generic_clock_init, double nominal_voltage_init, bool mb_debug_init, bool call_to_default_if_init, bool verbose_parameters_init, bool dmi_enabled_init, const char* warning_level_init, unsigned int NetworkSlave_pipeline_length_init, unsigned int SampleIntervalInClocks_init, unsigned int NumberOfSamplesPerPacket_init, unsigned int MinRetryDelayInClocks_init, unsigned int MaxRetryDelayInClocks_init, unsigned int MaxNumberOfRetrys_init, unsigned int AcknowledgeTimeoutInClocks_init, unsigned long long MacAddress_init, unsigned long long MacAddressSystemController_init, unsigned int TotalNumberOfPackets_init, unsigned int SampleFifoSize_init)
+SensorNodeLevel1_pvt::SensorNodeLevel1_pvt(sc_module_name module_name, sc_core::sc_time clock_init, sc_core::sc_time generic_clock_init, double nominal_voltage_init, bool mb_debug_init, bool call_to_default_if_init, bool verbose_parameters_init, bool dmi_enabled_init, const char* warning_level_init, unsigned int NetworkSlave_pipeline_length_init, unsigned int SampleIntervalInClocks_init, unsigned int NumberOfSamplesPerPacket_init, unsigned int MinRetryDelayInClocks_init, unsigned int MaxRetryDelayInClocks_init, unsigned int MaxNumberOfRetrys_init, unsigned int AcknowledgeTimeoutInClocks_init, unsigned long long MacAddress_init, unsigned long long MacAddressSystemController_init, unsigned int TotalNumberOfPackets_init, unsigned int SampleFifoSize_init, const char* SampleDistribution_init, unsigned int MaxOutstandingPackets_init)
   : esl::sc_sim::PVTBaseModel(module_name, 0),
-  SensorNodeLevel1_pvt_param_defaults(this->name(), clock_init, generic_clock_init, nominal_voltage_init, mb_debug_init, call_to_default_if_init, verbose_parameters_init, dmi_enabled_init, warning_level_init, NetworkSlave_pipeline_length_init, SampleIntervalInClocks_init, NumberOfSamplesPerPacket_init, MinRetryDelayInClocks_init, MaxRetryDelayInClocks_init, MaxNumberOfRetrys_init, AcknowledgeTimeoutInClocks_init, MacAddress_init, MacAddressSystemController_init, TotalNumberOfPackets_init, SampleFifoSize_init),
+  SensorNodeLevel1_pvt_param_defaults(this->name(), clock_init, generic_clock_init, nominal_voltage_init, mb_debug_init, call_to_default_if_init, verbose_parameters_init, dmi_enabled_init, warning_level_init, NetworkSlave_pipeline_length_init, SampleIntervalInClocks_init, NumberOfSamplesPerPacket_init, MinRetryDelayInClocks_init, MaxRetryDelayInClocks_init, MaxNumberOfRetrys_init, AcknowledgeTimeoutInClocks_init, MacAddress_init, MacAddressSystemController_init, TotalNumberOfPackets_init, SampleFifoSize_init, SampleDistribution_init, MaxOutstandingPackets_init),
     Sensor("Sensor"),
     NetworkMaster("NetworkMaster"),
     NetworkSlave("NetworkSlave"),

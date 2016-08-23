@@ -49,6 +49,7 @@ add_delay_policy NodeSlave2 7 -latency 0 -sync 1 -power 1
 add_delay_policy NodeSlave3 7 -latency 0 -sync 1 -power 1
 add_delay_policy NodeSlave4 7 -latency 0 -sync 1 -power 1
 set_nominal_clock 100
+declare_variable DropRate -type config::real80
 declare_communication_channel SystemControllerFifo mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}
 declare_communication_channel NodeFifo0 mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}
 declare_communication_channel NodeFifo1 mb_fifo MaxFifoSize -template_parameters {ethernet_packet *}

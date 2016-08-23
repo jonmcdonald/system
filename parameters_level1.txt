@@ -1,4 +1,28 @@
 clock = 10 ns
+generic_clock = 1 ns
+
+TopLevel1.SYSTEMCONTROLLER.ProcessDelayInClocks = 100
+TopLevel1.SYSTEMCONTROLLER.ProcessFifoSize = 10
+
+TopLevel1.NODE0.SampleDistribution = constant 50
+TopLevel1.NODE1.SampleDistribution = uniform 5 75 4747
+TopLevel1.NODE2.SampleDistribution = poisson 50 20 11117
+TopLevel1.NODE3.SampleDistribution = gaussian 20 10 228911
+
+TopLevel1.NODE0.AcknowledgeTimeoutInClocks = 200
+TopLevel1.NODE1.AcknowledgeTimeoutInClocks = 200
+TopLevel1.NODE2.AcknowledgeTimeoutInClocks = 200
+TopLevel1.NODE3.AcknowledgeTimeoutInClocks = 200
+
+TopLevel1.NODE0.SampleFifoSize = 15
+TopLevel1.NODE1.SampleFifoSize = 15
+TopLevel1.NODE2.SampleFifoSize = 15
+TopLevel1.NODE3.SampleFifoSize = 15
+
+TopLevel1.NODE0.TotalNumberOfPackets = 20
+TopLevel1.NODE1.TotalNumberOfPackets = 20
+TopLevel1.NODE2.TotalNumberOfPackets = 20
+TopLevel1.NODE3.TotalNumberOfPackets = 20
 
 TopLevel1.NODE0.MacAddress = 1
 TopLevel1.NODE0.MacAddressSystemController = 5
