@@ -4,6 +4,8 @@ generic_clock = 1 ns
 TopLevel1.SYSTEMCONTROLLER.ProcessDelayInClocks = 100
 TopLevel1.SYSTEMCONTROLLER.ProcessFifoSize = 10
 
+TopLevel1.NETWORKSWITCH.MaxFifoSize = 10
+
 TopLevel1.NODE0.SampleDistribution = constant 50
 TopLevel1.NODE1.SampleDistribution = uniform 5 75 4747
 TopLevel1.NODE2.SampleDistribution = poisson 50 20 11117

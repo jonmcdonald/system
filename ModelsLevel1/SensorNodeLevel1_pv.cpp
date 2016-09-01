@@ -126,7 +126,8 @@ void SensorNodeLevel1_pv::IntervalSampleThread() {
     set_current_token(current_token);   // set a new token
     
     mb_sync();                                                      // upate the system time
-    current_token->setField("StartTimeDouble", sc_time_stamp().to_double()); // add a new vlaue to the token for the time stamp
+    // add a new vlaue to the token for the time stamp
+    current_token->setField("StartTimeNS", (unsigned int)(sc_time_stamp()/sc_time(1, SC_NS)) ); 
     
     // read data from the sensor threw the sensor port
     Sensor_read(0, (unsigned char *) &sample, 2);                     // read two charactors and conver them to an unsigned short
@@ -238,11 +239,10 @@ void SensorNodeLevel1_pv::AckThread() {
         } 
         else                                    // Packet received, log success and clear from OutstandingPackets
         {
-          assert (token->hasField("StartTimeDouble"));
-          start_time = token->getFieldAsDouble("StartTimeDouble") * sc_get_time_resolution();
-          delta_time = start_time - sc_time_stamp();
-          TimeOfFlightInNanoSeconds = delta_time.to_seconds() * 1.0e+9;
+          assert (token->hasField("StartTimeNS"));
+          TimeOfFlightInNanoSeconds = (sc_time_stamp() / sc_time(1, SC_NS)) - token->getFieldAsDouble("StartTimeNS");
           DropPacketRate = 0.8 * DropPacketRate;
+          RetryPacketRate = 0.8 * RetryPacketRate;
           OutstandingPackets.erase(id);
         }
       }
